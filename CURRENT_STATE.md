@@ -1,13 +1,13 @@
 # Role Garden — CURRENT STATE
 
-> **Last updated:** Day 24 — Wednesday June 17, 2026 (Session A.3 shipped)
+> **Last updated:** Day 24 — Wednesday June 17, 2026 (platform positioning updated, A.4 scope expanded)
 > **Purpose:** Architectural reality for build chats. Not a changelog. Not a roadmap.
 
 ---
 
 ## 1. Product framing
 
-Role Garden is an AI career growth platform for sales / GTM / tech professionals. Single tier $39/mo with 14-day card-on-signup trial. Two primary user modes:
+Role Garden is a premium AI career growth platform for professionals seeking their next role at exceptional companies — across industries, across functions. Single tier $39/mo with 14-day card-on-signup trial. Two primary user modes:
 
 1. **Find Jobs** — Matches experience (search + recommendations + Score This Job)
 2. **Work a Job** — Applications experience (Assessment + prep workflows + AI copilot)
@@ -92,7 +92,7 @@ Three adapters fetch jobs from public APIs. JSearch removed permanently (Day 23)
 - `job_id`, `title`, `company`, `location`, `remote`
 - `description`, `salary`, `apply_url`, `logo_url`
 - `posted_at`, `fetched_at`, `expires_at`
-- `title_bucket` (account_executive | sales_director — expands Phase C)
+- `title_bucket` (account_executive | sales_director — expanding to 15 buckets in Day 24 A.4: business_development, revenue_operations, customer_success, product_manager, software_engineer, data, design, marketing, operations, consulting, finance, legal, people_hr)
 - `industry_buckets` (text[] — up to 2 classified buckets)
 - `priority_boost` (boolean)
 - `classification_confidence` (0-1)
@@ -226,7 +226,7 @@ Total: 0-100. Priority_boost adds +10 (capped at 100). Current sort: `score DESC
 - **Match labels:** Excellent / Strong / Good / Fair (no numeric score shown)
 - **Dream Companies** moves into Profile widget (not left rail) in Phase B
 - **Bundle migration** (single HTML → React/Vite) — V2 work, not V1
-- **Marketing positioning:** "career growth platform" + "ATS-direct, no scraping" trust differentiator
+- **Marketing positioning:** "premium job search platform" + "curated companies across industries" + "ATS-direct, no scraping" trust differentiator. NOT a sales job board — targets all professionals (engineers, PMs, designers, consultants, ops, finance, legal, data, marketing) seeking roles at exceptional companies.
 - **Seed strategy:** incremental (publishedAt filter, no TRUNCATE) + 3x/week cadence — target ~$5-10/month seed cost. Full TRUNCATE + re-seed only for major schema changes. Baked into Phase B Edge Function migration.
 - **Scoring cost lever:** cascade scoring only (A.7). No description trimming (card quality depends on full JD). No pre-scoring (profile distribution unknown). Score caching = Phase B candidate after real usage data.
 
