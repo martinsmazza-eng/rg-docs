@@ -1,6 +1,6 @@
 # Role Garden — CURRENT STATE
 
-> **Last updated:** Day 24 — Wednesday June 17, 2026 (platform positioning updated, A.4 scope expanded)
+> **Last updated:** Day 24 — Wednesday June 17, 2026 (Sessions A.4+A.6 shipped)
 > **Purpose:** Architectural reality for build chats. Not a changelog. Not a roadmap.
 
 ---
@@ -62,17 +62,20 @@ Three adapters fetch jobs from public APIs. JSearch removed permanently (Day 23)
 
 **Total: 94 ATS-tagged curated companies.** Remaining 230+ curated companies (Workday-hosted, custom systems, agencies) are SKIPPED in seed — logged as `curated_skipped`, no fallback.
 
-### 3.2. Seed pipeline (`seed_jobs.js` — Day 24 A.3 patch)
+### 3.2. Seed pipeline (`seed_jobs.js` — Day 24 A.4+A.6 patch, 1,539 lines)
 
 1. Load curated companies from `rg_curated_companies` where `ats_provider IS NOT NULL`
-2. For each company → adapter fetches jobs
-3. US-only location filter at adapter level (Lever + Ashby implemented; Greenhouse = Day 24 A.4)
-4. Title pre-filter — 28 stable universal exclusions (blue-collar, food service, K-12, clinical frontline, personal services). Engineering / PM / design / data / sales / marketing all KEPT.
-5. Each job → Haiku classification → 12-bucket industry assignment + confidence score
-6. Drop if: `reject_other` (company outside all listed industries) OR `role_match_no` (non-knowledge-worker role: warehouse, food service, clinical frontline, manual labor) OR `confidence < 0.6` OR `classification_failed`
-7. Insert with `priority_boost = true` if classified bucket matches curated bucket
-8. Dedup on `ats_canonical_id` (ATS source wins on collision)
-9. Final log: `rg_seed_run_<timestamp>.json`
+2. JS slug dedup — `DISTINCT ON (ats_provider, ats_slug)` equivalent. Prevents multi-bucket companies (Stripe, HubSpot, Klaviyo) from being processed twice.
+3. For each company → adapter fetches jobs
+4. US-only location filter at adapter level — all three adapters: Greenhouse, Lever, Ashby
+5. Title pre-filter — 28 stable universal exclusions (blue-collar, food service, K-12, clinical frontline, personal services). Engineering / PM / design / data / sales / marketing all KEPT.
+6. Each job → Haiku classification → 12-bucket industry assignment + confidence score
+7. Drop if: `reject_other` (company outside all listed industries) OR `role_match_no` (non-knowledge-worker role) OR `confidence < 0.6` OR `classification_failed`
+8. `assignTitleBucket(title, company)` → 15-bucket title assignment (null for unmatched — job still inserts)
+9. Insert with `priority_boost = true` if classified bucket matches curated bucket
+10. `expires_at = now() + 60 days` on every insert
+11. Dedup on `ats_canonical_id` (ATS source wins on collision)
+12. Final log: `rg_seed_run_<timestamp>.json`
 
 **Last full seed (Day 23):** 1,478 inserted (1,375 unique), 91% priority_boost=true, 38 min, $5.30 Haiku cost. Note: Ashby adapter was broken during this run — 0 Ashby jobs inserted. Fixed Day 24 A.2.
 
@@ -92,7 +95,7 @@ Three adapters fetch jobs from public APIs. JSearch removed permanently (Day 23)
 - `job_id`, `title`, `company`, `location`, `remote`
 - `description`, `salary`, `apply_url`, `logo_url`
 - `posted_at`, `fetched_at`, `expires_at`
-- `title_bucket` (account_executive | sales_director — expanding to 15 buckets in Day 24 A.4: business_development, revenue_operations, customer_success, product_manager, software_engineer, data, design, marketing, operations, consulting, finance, legal, people_hr)
+- `title_bucket` — 15 buckets: account_executive, sales_director, business_development, revenue_operations, customer_success, product_manager, software_engineer, data, design, marketing, operations, consulting, finance, legal, people_hr. Null for unmatched titles (job still visible via industry_buckets).
 - `industry_buckets` (text[] — up to 2 classified buckets)
 - `priority_boost` (boolean)
 - `classification_confidence` (0-1)
@@ -167,8 +170,8 @@ Total: 0-100. Priority_boost adds +10 (capped at 100). Current sort: `score DESC
 | 4.1 | Ashby adapter: `data.jobPostings` → `data.jobs` key mismatch | P0 | **FIXED Day 24 A.2** (commit 213b61a). Mini-seed verified Ramp + OpenAI. Full seed pending. |
 | 4.2 | Haiku classifier is sales-only — drops engineering/PM/design as `role_match_no` | P0 | **FIXED Day 24 A.3** — prompt rewrite, all knowledge-worker roles now pass. `role_match_no` reserved for warehouse/food service/manual labor only. Full seed pending. |
 | 4.3 | Sort by raw score, not bucket-match-tier | P0 | Open — Day 24 A.5 |
-| 4.4 | International remote leakage — Greenhouse adapter has no US-only filter | P1 | Open — Day 24 A.4 (Lever + Ashby fixed in A.2) |
-| 4.5 | Dupe processing — Stripe/HubSpot/Klaviyo have 2 curated rows, fetched twice | P1 | Open — Day 25 A.6 |
+| 4.4 | International remote leakage — Greenhouse adapter has no US-only filter | P1 | **FIXED Day 24 A.4** — `isGreenhouseUSJob()` added, conservative logic, all three adapters now have US filter |
+| 4.5 | Dupe processing — Stripe/HubSpot/Klaviyo have 2 curated rows, fetched twice | P1 | **FIXED Day 24 A.6** — JS slug dedup in `main()` after curated companies load |
 
 ---
 
