@@ -1,6 +1,6 @@
 # Role Garden — CURRENT STATE
 
-> **Last updated:** Day 24 — Wednesday June 17, 2026 (Sessions A.4+A.6 shipped)
+> **Last updated:** Day 24 — Wednesday June 17, 2026 (Sessions A.5 + A.5.5 shipped)
 > **Purpose:** Architectural reality for build chats. Not a changelog. Not a roadmap.
 
 ---
@@ -106,12 +106,13 @@ Three adapters fetch jobs from public APIs. JSearch removed permanently (Day 23)
 ### 3.4. Frontend search flow
 
 1. User on `/matches` triggers `runM0Search` (auto on load or chip change)
-2. `fetchFromIndex()` reads user buckets from profile (or chip-derived fallback)
+2. `fetchFromIndex()` reads user buckets from profile cache (`rg_career_profile_cache.assigned_title_buckets` + `assigned_industry_buckets`). Extraction fires on all upload paths (onboarding + banner + Profile page) as of Day 24 A.5.5. Falls back to chip-derived buckets if cache empty.
 3. `expandUserBuckets()` expands via mega-cluster map (see 3.5)
 4. Supabase query: `rg_jobs_index` with `title_bucket IN [...]` + `industry_buckets && [...]` + location + remote filters
 5. Returns up to 100 jobs (Day 24 A.7: raise to 300 + cascade scoring)
 6. `scoreJobs()` calls Haiku per job in parallel batches → score + dimensions + summary
-7. `priority_boost` passes through fetchFromIndex → scoreJobs applies +10 boost
+7. `priority_boost` field preserved on job objects — score inflation (+10) removed Day 24 A.5. Field needed for A.7 pre-rank.
+7.5. `getBucketMatchTier()` assigns each job a tier (2/1/0) based on profile primary bucket overlap. `renderJobResults` sorts by `[bucketMatchTier DESC, score DESC]` — Tier 2 = exact primary bucket match, Tier 1 = cluster-adjacent, Tier 0 = out-of-cluster.
 8. Cards render via `rgLogoHtml()` priority chain (see 3.6)
 
 ### 3.5. Industry bucket mega-cluster map
@@ -159,7 +160,7 @@ Logo.dev token domain-restricted to `app.rolegarden.com` (server-side enforced).
 - **Seniority fit** (0-15 pts)
 - **Skills fit** (0-10 pts, only if industry passed)
 
-Total: 0-100. Priority_boost adds +10 (capped at 100). Current sort: `score DESC`. Day 24 A.5 adds bucket-match-tier sort.
+Total: 0-100. Priority_boost score inflation removed Day 24 A.5. Sort: `[bucketMatchTier DESC, score DESC]` — Tier 2 = exact primary bucket match, Tier 1 = cluster-adjacent, Tier 0 = out-of-cluster.
 
 ---
 
@@ -169,7 +170,9 @@ Total: 0-100. Priority_boost adds +10 (capped at 100). Current sort: `score DESC
 |---|---|---|---|
 | 4.1 | Ashby adapter: `data.jobPostings` → `data.jobs` key mismatch | P0 | **FIXED Day 24 A.2** (commit 213b61a). Mini-seed verified Ramp + OpenAI. Full seed pending. |
 | 4.2 | Haiku classifier is sales-only — drops engineering/PM/design as `role_match_no` | P0 | **FIXED Day 24 A.3** — prompt rewrite, all knowledge-worker roles now pass. `role_match_no` reserved for warehouse/food service/manual labor only. Full seed pending. |
-| 4.3 | Sort by raw score, not bucket-match-tier | P0 | Open — Day 24 A.5 |
+| 4.3 | Sort by raw score, not bucket-match-tier | P0 | **FIXED Day 24 A.5** — `getBucketMatchTier()` + `[tier DESC, score DESC]` sort in `renderJobResults` |
+| 4.6 | Onboarding skip + resume-via-banner path doesn't fire profile extraction | P1 | **FIXED Day 24 A.5.5** — `extractCareerProfile()` added to `saveResumeText()`. Fires on all upload paths. |
+| 4.7 | Left rail title/industry chips conflict with Phase B "My Profile" UX | P1 | **FIXED Day 24 A.5.5** — TITLES and INDUSTRIES hidden (`display:none`). DOM intact for Phase B re-show. |
 | 4.4 | International remote leakage — Greenhouse adapter has no US-only filter | P1 | **FIXED Day 24 A.4** — `isGreenhouseUSJob()` added, conservative logic, all three adapters now have US filter |
 | 4.5 | Dupe processing — Stripe/HubSpot/Klaviyo have 2 curated rows, fetched twice | P1 | **FIXED Day 24 A.6** — JS slug dedup in `main()` after curated companies load |
 
@@ -182,7 +185,7 @@ Total: 0-100. Priority_boost adds +10 (capped at 100). Current sort: `score DESC
 - **Login / signup** — email/password, Supabase auth
 - **Onboarding** — 3 steps: Resume upload → Career Profile (Haiku-extracted) → Ready
 - **Matches page** — pre-redesign layout:
-  - Left rail: TITLES + LOCATION + INDUSTRIES + TARGET COMPANIES inputs
+  - Left rail: LOCATION + REMOTE toggle + DREAM COMPANIES (TITLES and INDUSTRIES hidden Day 24 A.5.5 — Phase B re-expose via My Profile widget)
   - Center: Match cards (score ring + summary + actions)
   - Right rail: not yet built (Phase B)
 - **Applications page:**
