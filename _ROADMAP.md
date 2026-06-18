@@ -1,6 +1,6 @@
 # Role Garden — Sprint Roadmap
 
-> **Last updated:** Day 24 — Wednesday June 17, 2026 (A.5 + A.5.5 shipped)
+> **Last updated:** Day 25 — Thursday June 18, 2026 (A.8.5 shipped)
 > **Purpose:** Sprint state + session-by-session plan through V1 paid-media launch (7/6/2026).
 > **Framing lock:** V1 (current build, expanding audience) + V2 (next major) only. No alpha/beta/V1.5.
 
@@ -15,7 +15,7 @@
 | **Paid media target** | Sunday July 6, 2026 (Day 40) |
 | **Pace** | ~5-7h/day solo |
 | **index.html** | ~14,000+ lines, ~800 KB |
-| **seed_jobs.js** | Day 24 A.3 patch (classifier rewritten — all knowledge-worker roles pass) |
+| **seed_jobs.js** | Day 25 A.8.5 patch (1,602 lines — Haiku title fallback, 25 buckets, remote fix, non-US remote exclusion) |
 | **Pool state** | ~1,478 jobs (pre-full-reseed). Full re-seed pending A.4 completion |
 | **Cost per seed** | ~$5.30 current → target ~$2 after full re-seed with A.2+A.3 fixes |
 
@@ -94,7 +94,11 @@
 - LOCATION, REMOTE toggle, DREAM COMPANIES unchanged and visible.
 - Closes P1 bugs 4.6 + 4.7. 15,581 → 15,613 lines.
 
-### Session A.7 — Pre-rank + cascade scoring + 300 cap + Load More
+### Session A.7.5 — Load More CSS + Dream Companies guard + Cache warm
+**Status: SHIPPED Day 25** (15,738 → 15,787 lines, +49)
+- Load More button moved inside `#m0Out` — was flex-sibling of m0Out in `.discover-shell`, rendered top-right as third column
+- Boot-time email guard: filters `@` from `rg_user_intent.target_companies` on every startup — clears legacy-contaminated localStorage
+- Cache warm: `rg_last_search_cache` now saves `preRanked` pool + `cascadeOffset` — cascade resumes on return visit without re-fetch, pre-scores next batch in background
 **Status: OPEN**
 - **Pre-rank (Stage 1, client-side, 0 cost):** Sort 300 jobs before Haiku sees them using lightweight signals: (1) exact title_bucket + exact industry + priority_boost, (2) exact title_bucket + exact industry, (3) exact title_bucket + cluster industry + priority_boost, (4) exact title_bucket + cluster industry, (5) cluster industry + priority_boost, (6) cluster industry only, (7) everything else. Best-aligned jobs guaranteed to surface in batch 1. Runs in ~5ms, no API call.
 - **Remove priority_boost score inflation:** Already removed in A.5. Pre-rank uses field as ordering signal only.
@@ -104,6 +108,17 @@
 - **Chip changes:** Pre-rank re-runs client-side against same 300 jobs on chip change. No new Supabase query unless location/remote changes.
 - Expected: ~75% Haiku cost cut on initial search + near-zero perceived latency
 - Brief: `RG_D25_A7_prerank_cascade_scoring_brief.md`
+
+### Session A.8.5 — Haiku title bucket + remote fix + new verticals + non-US remote exclusion
+**Status: SHIPPED Day 25** (1,539 → 1,602 lines, +63)
+- Haiku `role_category` added to classification prompt — zero extra cost, fills null title_bucket gaps
+- Remote field fix: Ashby `isRemote` boolean + "United States"/blank → `remote=true` across all adapters
+- 25-bucket classifier: 12 new industry verticals added to prompt + `VALID_BUCKETS`
+- Non-US remote exclusion: "Remote - Ireland", "Remote Canada" etc. now correctly excluded
+- Mini-seed: Trade Desk ✅, OpenAI ✅ (new verticals appearing in secondary buckets), Deel 0 jobs (no US remote roles posted)
+- `[FOLLOW-UP]` Remove `priority_boost` from `preRankJobs()` tier logic — 2-line fix in index.html
+- `[FOLLOW-UP]` Add 12 new verticals to `INDUSTRY_BUCKET_CLUSTERS` in index.html — Phase B
+- `[FOLLOW-UP]` Strip JSearch references from seed header log
 
 ### Session A.8 — TRUNCATE + full re-seed + smoke test
 **Status: OPEN**
@@ -246,4 +261,5 @@ Security breach playbook, lawsuit/C&D escalation, lights-off procedure. Kill-swi
 | 20 | June 13 | Phase 2a Haiku classification at seed (v6.0, 673 inserted, 38.5% drop rate) |
 | 22 | June 15 | Phase 2c ATS adapter framework (v7.0, Greenhouse+Lever+Ashby, 49 companies tagged, 1,348 inserted) |
 | 23 | June 16 | JSearch removed, mega-cluster buckets, Logo.dev chain, priority_boost fix, 92 ATS-tagged companies, 1,478 inserted ATS-only. V1/V2 framing locked. 5 workflow startup docs. |
-| 24 | June 17 | **A.1:** workflow + docs. **A.2:** Ashby adapter fixed. **A.3:** multi-role classifier. **A.4+A.6:** 15 title buckets, Greenhouse US filter, slug dedup, expires_at. **A.5:** bucket-tier sort + priority_boost inflation removed. **A.5.5:** profile extraction fix + chip hide. 67 new vertical companies + logos. |
+| 24 | June 17 | **A.1:** workflow + docs. **A.2:** Ashby adapter fixed. **A.3:** multi-role classifier. **A.4+A.6:** 15 title buckets, Greenhouse US filter, slug dedup, expires_at. **A.5:** bucket-tier sort + priority_boost inflation removed. **A.5.5:** profile extraction fix + chip hide. **A.7:** pre-rank + cascade scoring + 300 cap + Load More. 67 new vertical companies + logos. |
+| 25 | June 18 | **A.7.5:** Load More CSS fix, Dream Companies email guard, cache warm. **A.7.5 patch:** Load More DOM fix, autocomplete guard. **A.8.5:** Haiku title fallback, 25 buckets, remote fix, non-US remote exclusion. Full re-seed: 8,081 jobs. HubSpot slug fixed. |

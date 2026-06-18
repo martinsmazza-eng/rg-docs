@@ -1,6 +1,6 @@
 # Role Garden — CURRENT STATE
 
-> **Last updated:** Day 24 — Wednesday June 17, 2026 (Sessions A.5 + A.5.5 shipped)
+> **Last updated:** Day 25 — Thursday June 18, 2026 (Session A.8.5 shipped)
 > **Purpose:** Architectural reality for build chats. Not a changelog. Not a roadmap.
 
 ---
@@ -62,16 +62,16 @@ Three adapters fetch jobs from public APIs. JSearch removed permanently (Day 23)
 
 **Total: 94 ATS-tagged curated companies.** Remaining 230+ curated companies (Workday-hosted, custom systems, agencies) are SKIPPED in seed — logged as `curated_skipped`, no fallback.
 
-### 3.2. Seed pipeline (`seed_jobs.js` — Day 24 A.4+A.6 patch, 1,539 lines)
+### 3.2. Seed pipeline (`seed_jobs.js` — Day 25 A.8.5 patch, 1,602 lines)
 
 1. Load curated companies from `rg_curated_companies` where `ats_provider IS NOT NULL`
-2. JS slug dedup — `DISTINCT ON (ats_provider, ats_slug)` equivalent. Prevents multi-bucket companies (Stripe, HubSpot, Klaviyo) from being processed twice.
+2. JS slug dedup — prevents multi-bucket companies from being processed twice.
 3. For each company → adapter fetches jobs
-4. US-only location filter at adapter level — all three adapters: Greenhouse, Lever, Ashby
-5. Title pre-filter — 28 stable universal exclusions (blue-collar, food service, K-12, clinical frontline, personal services). Engineering / PM / design / data / sales / marketing all KEPT.
-6. Each job → Haiku classification → 12-bucket industry assignment + confidence score
-7. Drop if: `reject_other` (company outside all listed industries) OR `role_match_no` (non-knowledge-worker role) OR `confidence < 0.6` OR `classification_failed`
-8. `assignTitleBucket(title, company)` → 15-bucket title assignment (null for unmatched — job still inserts)
+4. US-only location filter at adapter level — all three adapters. Non-US remote exclusion tightened: "Remote - Ireland", "Remote Canada" etc. now excluded.
+5. Title pre-filter — 28 stable universal exclusions. Engineering / PM / design / data / sales / marketing all KEPT.
+6. Each job → Haiku classification → 25-bucket industry assignment + `role_category` title fallback + confidence score
+7. Drop if: `reject_other` OR `role_match_no` OR `confidence < 0.6` OR `classification_failed`
+8. `assignTitleBucket(title, company)` → 15-bucket regex (fast, zero cost). If null → falls back to Haiku `role_category` (already classified in step 6, zero extra cost).
 9. Insert with `priority_boost = true` if classified bucket matches curated bucket
 10. `expires_at = now() + 60 days` on every insert
 11. Dedup on `ats_canonical_id` (ATS source wins on collision)
@@ -95,7 +95,7 @@ Three adapters fetch jobs from public APIs. JSearch removed permanently (Day 23)
 - `job_id`, `title`, `company`, `location`, `remote`
 - `description`, `salary`, `apply_url`, `logo_url`
 - `posted_at`, `fetched_at`, `expires_at`
-- `title_bucket` — 15 buckets: account_executive, sales_director, business_development, revenue_operations, customer_success, product_manager, software_engineer, data, design, marketing, operations, consulting, finance, legal, people_hr. Null for unmatched titles (job still visible via industry_buckets).
+- `title_bucket` — 15 buckets via regex; null falls back to Haiku `role_category` (zero extra cost). Jobs with null title_bucket still visible via industry_buckets.
 - `industry_buckets` (text[] — up to 2 classified buckets)
 - `priority_boost` (boolean)
 - `classification_confidence` (0-1)
@@ -114,6 +114,7 @@ Three adapters fetch jobs from public APIs. JSearch removed permanently (Day 23)
 7. `priority_boost` field preserved on job objects — score inflation (+10) removed Day 24 A.5. Field needed for A.7 pre-rank.
 7.5. `getBucketMatchTier()` assigns each job a tier (2/1/0) based on profile primary bucket overlap. `renderJobResults` sorts by `[bucketMatchTier DESC, score DESC]` — Tier 2 = exact primary bucket match, Tier 1 = cluster-adjacent, Tier 0 = out-of-cluster.
 8. Cards render via `rgLogoHtml()` priority chain (see 3.6)
+8.5. **Cache warm on return visit** — `rg_last_search_cache` saves `preRanked` (full unscored pre-ranked pool) + `cascadeOffset` alongside `results`. On return visit, `rgLoadSearchCache` restores cascade state so Load More works immediately without a fresh Supabase fetch. Pre-scores next batch in background on restore. Fresh cache only — stale cache fires `runM0Search()` as before.
 
 ### 3.5. Industry bucket mega-cluster map
 
@@ -140,6 +141,8 @@ const INDUSTRY_BUCKET_CLUSTERS = {
 ```
 
 Frontend logs `[fetchFromIndex] Cluster expansion: X primary → Y cluster buckets` on every search.
+
+**Note:** 12 new industry buckets exist in the seed classifier (legaltech, hrtech, proptech, climate_clean_energy, logistics, insurtech, govtech, gaming, consumer_apps, hospitality_travel, food_beverage_tech, manufacturing_tech) but are NOT yet in `INDUSTRY_BUCKET_CLUSTERS`. Frontend search won't expand these new verticals until added. Phase B work. `[FOLLOW-UP]`
 
 ### 3.6. Logo render priority chain
 
@@ -176,9 +179,9 @@ Total: 0-100. Priority_boost score inflation removed Day 24 A.5. Sort: `[bucketM
 | 4.4 | International remote leakage — Greenhouse adapter has no US-only filter | P1 | **FIXED Day 24 A.4** — `isGreenhouseUSJob()` added, conservative logic, all three adapters now have US filter |
 | 4.5 | Dupe processing — Stripe/HubSpot/Klaviyo have 2 curated rows, fetched twice | P1 | **FIXED Day 24 A.6** — JS slug dedup in `main()` after curated companies load |
 
----
-
-## 5. Frontend & app state
+| 4.8 | Seed header log shows stale JSearch references ("150 without ATS will use JSearch fallback", "Title buckets: 2 (6 variants)") | P1 | Open — fix in next full re-seed session `[FOLLOW-UP]` |
+| 4.9 | `priority_boost` still used as pre-rank signal in `preRankJobs()` — JSearch gone, field adds no differentiation. Remove from tier logic, use title+industry match only. | P1 | Open — 2-line fix in index.html `preRankJobs()` `[FOLLOW-UP]` |
+| 4.10 | `INDUSTRY_BUCKET_CLUSTERS` missing 12 new verticals — frontend search won't expand new vertical buckets | P1 | Open — Phase B work `[FOLLOW-UP]` |
 
 ### 5.1. Screens and wiring
 
