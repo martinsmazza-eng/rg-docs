@@ -1,6 +1,6 @@
 # Role Garden — Sprint Roadmap
 
-> **Last updated:** Day 25 — Thursday June 18, 2026 (A.8.5 shipped)
+> **Last updated:** Day 25 — Thursday June 18, 2026 (Phase A complete, marketing site live)
 > **Purpose:** Sprint state + session-by-session plan through V1 paid-media launch (7/6/2026).
 > **Framing lock:** V1 (current build, expanding audience) + V2 (next major) only. No alpha/beta/V1.5.
 
@@ -120,7 +120,14 @@
 - `[FOLLOW-UP]` Add 12 new verticals to `INDUSTRY_BUCKET_CLUSTERS` in index.html — Phase B
 - `[FOLLOW-UP]` Strip JSearch references from seed header log
 
-### Session A.8 — TRUNCATE + full re-seed + smoke test
+### Session A.8.6 — Cascade render fix + auth timing fix (Day 26 priority)
+**Status: OPEN — P0, fix before paid media**
+- **Bug 4.11:** Auth session not ready when `runM0Search()` fires after onboarding → 401 → no results. Fix: await Supabase session confirmation before firing search.
+- **Bug 4.12:** Cascade mixing scored + unscored cards — unscored cards rendering without Why/Challenge/summary. Fix: only render scored cards, show skeleton/placeholder for unscored.
+- **Bug 4.13:** Load More button disappearing after Search button click. Fix: related to cascade render, fix together with 4.12.
+- Brief: `RG_D26_A8p6_cascade_auth_fix_brief.md`
+
+
 **Status: OPEN**
 - Verify all Phase A patches applied
 - TRUNCATE `rg_jobs_index`
@@ -262,4 +269,4 @@ Security breach playbook, lawsuit/C&D escalation, lights-off procedure. Kill-swi
 | 22 | June 15 | Phase 2c ATS adapter framework (v7.0, Greenhouse+Lever+Ashby, 49 companies tagged, 1,348 inserted) |
 | 23 | June 16 | JSearch removed, mega-cluster buckets, Logo.dev chain, priority_boost fix, 92 ATS-tagged companies, 1,478 inserted ATS-only. V1/V2 framing locked. 5 workflow startup docs. |
 | 24 | June 17 | **A.1:** workflow + docs. **A.2:** Ashby adapter fixed. **A.3:** multi-role classifier. **A.4+A.6:** 15 title buckets, Greenhouse US filter, slug dedup, expires_at. **A.5:** bucket-tier sort + priority_boost inflation removed. **A.5.5:** profile extraction fix + chip hide. **A.7:** pre-rank + cascade scoring + 300 cap + Load More. 67 new vertical companies + logos. |
-| 25 | June 18 | **A.7.5:** Load More CSS fix, Dream Companies email guard, cache warm. **A.7.5 patch:** Load More DOM fix, autocomplete guard. **A.8.5:** Haiku title fallback, 25 buckets, remote fix, non-US remote exclusion. Full re-seed: 8,081 jobs. HubSpot slug fixed. |
+| 25 | June 18 | **A.7.5:** Load More CSS fix, Dream Companies email guard, cache warm. **A.7.5 patch:** Load More DOM fix, autocomplete guard. **A.8.5:** Haiku title fallback, 25 buckets, remote fix, non-US remote exclusion. **A.8:** Full re-seed 8,848 jobs, 147 companies, 226 AE remote ✅. **Marketing:** rolegarden.com live, noindex, OG tags, favicon. HubSpot/Apollo slugs fixed. |

@@ -1,6 +1,6 @@
 # Role Garden — CURRENT STATE
 
-> **Last updated:** Day 25 — Thursday June 18, 2026 (Session A.8.5 shipped)
+> **Last updated:** Day 25 — Thursday June 18, 2026 (Phase A complete, marketing site live)
 > **Purpose:** Architectural reality for build chats. Not a changelog. Not a roadmap.
 
 ---
@@ -27,7 +27,7 @@ Everything else supports one of those two modes.
 | **Database** | Supabase Pro — `https://xveicdwpxwbezwncbxbp.supabase.co` |
 | **Email** | Resend via `send.rolegarden.com` |
 | **LLM** | Anthropic API Tier 2. Haiku for ~90% of features. Sonnet for M1D + Frameworkless Prep only |
-| **Seed** | Node script `seed_jobs.js` — runs locally from `~/rolegarden_seed/` |
+| **Marketing site** | `rolegarden.com` — Netlify, repo `martinsmazza-eng/rolegarden-marketing`. Holding page with noindex. Framer site Phase C. |
 | **Auth** | Email/password via Supabase. OAuth (Google + Microsoft) = Phase B work |
 
 **Local working directories:**
@@ -38,9 +38,10 @@ Everything else supports one of those two modes.
 - `martinsmazza-eng/deploy_rg` — frontend
 - `martinsmazza-eng/rolegarden_seed` — seed
 - `martinsmazza-eng/rg-proxy` — Render proxy
-- `martinsmazza-eng/rg-docs` — CURRENT_STATE + ROADMAP source of truth
+- `martinsmazza-eng/rolegarden-marketing` — marketing homepage (rolegarden.com)
 
 **Domains:**
+- `rolegarden.com` — marketing homepage (Netlify, noindex holding page)
 - `app.rolegarden.com` — app (Netlify)
 - `rolegarden.com` — marketing site (Framer, Phase C work)
 - `send.rolegarden.com` — Resend transactional
@@ -182,6 +183,11 @@ Total: 0-100. Priority_boost score inflation removed Day 24 A.5. Sort: `[bucketM
 | 4.8 | Seed header log shows stale JSearch references ("150 without ATS will use JSearch fallback", "Title buckets: 2 (6 variants)") | P1 | Open — fix in next full re-seed session `[FOLLOW-UP]` |
 | 4.9 | `priority_boost` still used as pre-rank signal in `preRankJobs()` — JSearch gone, field adds no differentiation. Remove from tier logic, use title+industry match only. | P1 | Open — 2-line fix in index.html `preRankJobs()` `[FOLLOW-UP]` |
 | 4.10 | `INDUSTRY_BUCKET_CLUSTERS` missing 12 new verticals — frontend search won't expand new vertical buckets | P1 | Open — Phase B work `[FOLLOW-UP]` |
+| 4.11 | Auth session not established when `runM0Search()` fires after onboarding → 401 → no results on first load. Manual Search click works. | P0 | Open `[FOLLOW-UP]` |
+| 4.12 | Cascade render mixing scored + unscored cards — bottom cards show without Why/Challenge/summary content | P0 | Open `[FOLLOW-UP]` |
+| 4.13 | Load More button disappearing after Search button click | P1 | Open — related to 4.12 `[FOLLOW-UP]` |
+| 4.14 | Background search during onboarding "analyzing resume" screen — user should land on results with cards ready | P1 | Open — Phase B `[FOLLOW-UP]` |
+| 4.15 | rolegarden.com noindex — remove before paid media launch | P1 | Open `[FOLLOW-UP]` |
 
 ### 5.1. Screens and wiring
 
