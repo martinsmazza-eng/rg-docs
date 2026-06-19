@@ -143,14 +143,32 @@
 
 **Days 26-32 (Fri June 19 → Thu June 25). Goal: visible product upgrades.**
 
-### B.1 — App redesign: 3-col Matches layout (Day 26)
-Per `ROLE_GARDEN_V2_LAYOUT_LOCK.md`. Left: Saved Searches rail. Center: Recommended Matches. Right: Score This Job (~66%) + Profile widget (~34%). Dream Companies moves into Profile widget.
+### A.8.6 — Cascade render fix + auth timing fix (Day 26, P0 — first session)
+**Status: OPEN**
+- Fix 4.11: auth session not ready after onboarding → 401 → no results. Await Supabase session before firing search.
+- Fix 4.12: cascade mixing scored + unscored cards. Only render scored cards.
+- Fix 4.13: Load More button disappearing on Search click.
 
-### B.2 — Match card visual restructure (Day 27)
-"Why You'll Love It" / "Potential Challenge" / "Fit Summary" / "Recommendation". Labels: Excellent / Strong / Good / Fair. No numeric score. No red states.
+### B.1 — App shell redesign: 3-col layout + nav + right rail (Day 26-27)
+**Status: OPEN**
+- Top nav: Matches / Applications only. Recruiter/HM/Final Round/Presentation move inside Applications.
+- 3-column layout on Matches page.
+- Left column: rename Saved Matches → Saved Searches, relocate to left rail. Same data model, no backend changes.
+- Right rail top (~66%): Score This Job widget — move existing "New Opportunity" paste box here. After scoring, render result as highlighted card at TOP of center Recommended Matches.
+- Right rail bottom (~34%): Your Profile widget — Career Goal, Location, Industry, Resume filename, Dream Companies N tracked, Edit Profile →. No chips, no strength meter.
+- Dream Companies removed from left rail input — lives in Edit Profile only.
+- Spec: `Role_Garden_V2_App_Design_Spec.docx`
 
-### B.3 — Score This Job widget (Day 28)
-Right-rail primary widget. Single intelligent input (JD paste / URL / recruiter email). Scored job renders as highlighted card at top of results.
+### B.2 — Match card polish (Day 27-28)
+**Status: OPEN**
+- Premium card spacing and typography per design spec
+- Fair Match amber bar minimum 50%
+- No red states, no numeric scores
+- Full card content always present (cascade regression resolved by A.8.6)
+- Spec: `Role_Garden_V2_App_Design_Spec.docx` Phase 2
+
+### B.3 — Score This Job widget
+**Status: BUNDLED INTO B.1** — right rail widget + scored card at top of results is part of B.1 shell redesign.
 
 ### B.4 — Frontend design polish: typography + spacing (Day 28)
 Premium spacing, Manrope tuning, card hover states + transitions.
