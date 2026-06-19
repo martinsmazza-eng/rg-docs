@@ -1,6 +1,6 @@
 # Role Garden — CURRENT STATE
 
-> **Last updated:** Day 25 — Thursday June 18, 2026 (Phase A complete, marketing site live)
+> **Last updated:** Day 26 — Friday June 19, 2026 (A.8.6 + auth fix + card fixes + onboarding flow)
 > **Purpose:** Architectural reality for build chats. Not a changelog. Not a roadmap.
 
 ---
@@ -183,11 +183,20 @@ Total: 0-100. Priority_boost score inflation removed Day 24 A.5. Sort: `[bucketM
 | 4.8 | Seed header log shows stale JSearch references ("150 without ATS will use JSearch fallback", "Title buckets: 2 (6 variants)") | P1 | Open — fix in next full re-seed session `[FOLLOW-UP]` |
 | 4.9 | `priority_boost` still used as pre-rank signal in `preRankJobs()` — JSearch gone, field adds no differentiation. Remove from tier logic, use title+industry match only. | P1 | Open — 2-line fix in index.html `preRankJobs()` `[FOLLOW-UP]` |
 | 4.10 | `INDUSTRY_BUCKET_CLUSTERS` missing 12 new verticals — frontend search won't expand new vertical buckets | P1 | Open — Phase B work `[FOLLOW-UP]` |
-| 4.11 | Auth session not established when `runM0Search()` fires after onboarding → 401 → no results on first load. Manual Search click works. | P0 | Open `[FOLLOW-UP]` |
-| 4.12 | Cascade render mixing scored + unscored cards — bottom cards show without Why/Challenge/summary content | P0 | Open `[FOLLOW-UP]` |
-| 4.13 | Load More button disappearing after Search button click | P1 | Open — related to 4.12 `[FOLLOW-UP]` |
-| 4.14 | Background search during onboarding "analyzing resume" screen — user should land on results with cards ready | P1 | Open — Phase B `[FOLLOW-UP]` |
+| 4.11 | Auth session not established when `runM0Search()` fires after onboarding → 401 → no results on first load | P0 | **FIXED Day 26** — onAuthStateChange listener gates search on SIGNED_IN/INITIAL_SESSION. `_rgAuthSearchFired` one-shot guard prevents double-fire. |
+| 4.12 | Cascade render mixing scored + unscored cards — bottom cards show without Why/Challenge/summary content | P0 | **FIXED Day 26** — validScored filter in cascadeLoadMore + cache restore guard. renderSkeletonCards() detach/re-attach also fixed. |
+| 4.13 | Load More button disappearing after Search button click | P1 | **FIXED Day 26** — root cause: renderSkeletonCards() destroying rg-load-more-container. Fixed with detach/re-attach pattern. Label changed to "Load More". |
+| 4.14 | Background search during onboarding — user lands on empty state | P1 | **FIXED Day 26** — obFinish() now awaits extraction first (series not parallel), then fires fetchFromIndex + preRankJobs + scoreJobs(batch1). Cards ready on landing. |
 | 4.15 | rolegarden.com noindex — remove before paid media launch | P1 | Open `[FOLLOW-UP]` |
+| 4.16 | HTML-encoded job descriptions sent to Haiku — score=50 fallback, no summary/why/gaps | P0 | **FIXED Day 26** — stripHtml() regex-based (decode entities + strip tags). slice raised 200→1500 chars. |
+| 4.17 | scoreJobs batch hard-capped at 6 jobs — jobs 7-10 always score=50 | P0 | **FIXED Day 26** — jobs.slice(0,6) → jobs.slice(0,10). Root cause of all prior max_tokens escalations (1000→8000). |
+| 4.18 | jobIdx=-1 bug — Create Opportunity + Save for Later silently fail | P0 | **FIXED Day 26** — renderJobResults uses findIndex by job.id + pushes cascade jobs into m0Results. |
+| 4.19 | Skip reason picker showing on every skip | P1 | **FIXED Day 26** — skipJobByIdx() simplified: skips immediately, no picker. |
+| 4.20 | saveSkipped() not defined — skip throws ReferenceError | P0 | **FIXED Day 26** — added saveSkipped() next to m0SkippedJobs declaration. |
+| 4.21 | M1 assessment auto-runs on opportunity creation | P1 | **FIXED Day 26** — removed setTimeout(runM1, 800) from addJobAsOpportunity(). Assessment now user-initiated only. |
+| 4.22 | Opportunity jobs not suppressed from future searches | P1 | **FIXED Day 26** — addJobAsOpportunity() pushes to m0SkippedJobs with reason='opportunity_created'. |
+| 4.23 | M1A workspace uses 5-dim scoring vs search card 4-dim — dimensions mismatch | P1 | Open — Phase B (B.9 roadmap item) `[FOLLOW-UP]` |
+| 4.24 | Dream Companies autocomplete showing email — regressed | P1 | Open `[FOLLOW-UP]` |
 
 ### 5.1. Screens and wiring
 

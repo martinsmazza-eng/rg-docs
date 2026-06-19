@@ -1,6 +1,6 @@
 # Role Garden — Sprint Roadmap
 
-> **Last updated:** Day 25 — Thursday June 18, 2026 (Phase A complete, marketing site live)
+> **Last updated:** Day 26 — Friday June 19, 2026 (A.8.6 complete + card fixes + onboarding flow)
 > **Purpose:** Sprint state + session-by-session plan through V1 paid-media launch (7/6/2026).
 > **Framing lock:** V1 (current build, expanding audience) + V2 (next major) only. No alpha/beta/V1.5.
 
@@ -144,7 +144,7 @@
 **Days 26-32 (Fri June 19 → Thu June 25). Goal: visible product upgrades.**
 
 ### A.8.6 — Cascade render fix + auth timing fix (Day 26, P0 — first session)
-**Status: OPEN**
+**Status: SHIPPED Day 26**
 - Fix 4.11: auth session not ready after onboarding → 401 → no results. Await Supabase session before firing search.
 - Fix 4.12: cascade mixing scored + unscored cards. Only render scored cards.
 - Fix 4.13: Load More button disappearing on Search click.
@@ -298,3 +298,4 @@ Security breach playbook, lawsuit/C&D escalation, lights-off procedure. Kill-swi
 | 23 | June 16 | JSearch removed, mega-cluster buckets, Logo.dev chain, priority_boost fix, 92 ATS-tagged companies, 1,478 inserted ATS-only. V1/V2 framing locked. 5 workflow startup docs. |
 | 24 | June 17 | **A.1:** workflow + docs. **A.2:** Ashby adapter fixed. **A.3:** multi-role classifier. **A.4+A.6:** 15 title buckets, Greenhouse US filter, slug dedup, expires_at. **A.5:** bucket-tier sort + priority_boost inflation removed. **A.5.5:** profile extraction fix + chip hide. **A.7:** pre-rank + cascade scoring + 300 cap + Load More. 67 new vertical companies + logos. |
 | 25 | June 18 | **A.7.5:** Load More CSS fix, Dream Companies email guard, cache warm. **A.7.5 patch:** Load More DOM fix, autocomplete guard. **A.8.5:** Haiku title fallback, 25 buckets, remote fix, non-US remote exclusion. **A.8:** Full re-seed 8,848 jobs, 147 companies, 226 AE remote ✅. **Marketing:** rolegarden.com live, noindex, OG tags, favicon. HubSpot/Apollo slugs fixed. |
+| 26 | June 19 | **A.8.6:** auth timing (onAuthStateChange gate), cascade render (validScored filter), Load More (skeleton detach/re-attach), onboarding loading state (series not parallel). **Card fixes:** stripHtml regex, scoreJobs batch 6→10, jobIdx -1 bug, saveSkipped() added, skip picker removed, M1 auto-run removed, opportunity suppression. **Marketing:** LinkedIn mention removed, mobile hero hidden. **Open P1s:** 4.9 priority_boost, 4.15 noindex, 4.23 M1A dim mismatch, 4.24 Dream Companies email regression. |
