@@ -242,7 +242,7 @@ Total: 0-100. Priority_boost score inflation removed Day 24 A.5. Sort: `[bucketM
 - **Dream Companies** moves into Profile widget (not left rail) in Phase B
 - **Bundle migration** (single HTML → React/Vite) — V2 work, not V1
 - **Marketing positioning:** "premium job search platform" + "curated companies across industries" + "ATS-direct, no scraping" trust differentiator. NOT a sales job board — targets all professionals (engineers, PMs, designers, consultants, ops, finance, legal, data, marketing) seeking roles at exceptional companies.
-- **Seed strategy:** incremental (publishedAt filter, no TRUNCATE) + 3x/week cadence — target ~$5-10/month seed cost. Full TRUNCATE + re-seed only for major schema changes. Baked into Phase B Edge Function migration.
+- **Prompt security:** Haiku scoring + card generation prompts currently visible in browser DevTools (index.html deployed to Netlify). Moving to Render proxy pre-paid-media (B.3). Company registry + ATS slugs already protected in Supabase. Seed classifier prompt in private repo only. — target ~$5-10/month seed cost. Full TRUNCATE + re-seed only for major schema changes. Baked into Phase B Edge Function migration.
 - **Scoring cost lever:** cascade scoring only (A.7). No description trimming (card quality depends on full JD). No pre-scoring (profile distribution unknown). Score caching = Phase B candidate after real usage data.
 
 ---

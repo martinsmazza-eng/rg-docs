@@ -167,6 +167,16 @@
 - Full card content always present (cascade regression resolved by A.8.6)
 - Spec: `Role_Garden_V2_App_Design_Spec.docx` Phase 2
 
+### B.3 — Move scoring + card prompts to Render proxy (pre-paid-media security)
+**Status: OPEN**
+- Currently: Haiku scoring prompt + card generation prompt live in index.html → visible in browser DevTools to anyone
+- Fix: move prompt assembly to `rg-proxy` (Render). Browser sends job data + user profile. Proxy assembles prompt, calls Anthropic, returns scored result. Prompt never reaches browser.
+- Protects core IP: scoring rubric (4-dim weights), card generation (Why/Challenge/Fit/Recommendation), match label logic
+- ATS adapter URLs are public APIs — no protection needed there. Company registry + slug mappings already protected in Supabase.
+- Custom direct adapters (Google, Meta) will live in proxy by default — naturally protected.
+- Touches: `rg-proxy` (Render) + `index.html` (remove prompt, send data to proxy instead)
+- Risk: adds latency if proxy is cold-starting on Render free tier. Confirm Render instance is always-on.
+
 ### B.3 — Score This Job widget
 **Status: BUNDLED INTO B.1** — right rail widget + scored card at top of results is part of B.1 shell redesign.
 
