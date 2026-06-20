@@ -180,8 +180,40 @@
 ### B.3 — Score This Job widget
 **Status: BUNDLED INTO B.1** — right rail widget + scored card at top of results is part of B.1 shell redesign.
 
-### B.4 — Frontend design polish: typography + spacing (Day 28)
-Premium spacing, Manrope tuning, card hover states + transitions.
+### B.4 — Supabase persistence: resume + profile + user job actions (pre-launch, P0)
+**Status: OPEN — must ship before V1 paid media launch**
+
+Mobile users lose resume, profile, skipped jobs, saved jobs, and dream companies on device/browser switch. All currently localStorage-only. This is a trust issue at $39/mo.
+
+**Scope:**
+
+Two new Supabase tables:
+
+`rg_user_profile`:
+- `user_id` (FK to auth.users)
+- `resume_text` — cleaned resume string
+- `career_profile_cache` — JSON (extracted buckets, career goals, industries)
+- `updated_at`
+
+`rg_user_job_actions`:
+- `user_id` (FK to auth.users)
+- `job_id` — references rg_jobs_index
+- `action_type` — enum: `skipped | saved | opportunity_created`
+- `created_at`
+
+**Frontend changes:**
+- On resume upload: write to Supabase + localStorage (dual write)
+- On auth SIGNED_IN: read from Supabase, hydrate localStorage if empty
+- On skip/save/opportunity: write to Supabase + localStorage
+- On search load: merge Supabase actions into m0SkippedJobs/m0SavedJobs
+
+**RLS:** users can only read/write their own rows.
+
+**Note:** Dream Companies and onboarding state also need persistence — bundle into same session.
+
+### B.4b — Frontend design polish: typography + spacing
+**Status: OPEN**
+Premium spacing, Manrope tuning, card hover states + transitions. (Previously B.4 — renumbered.)
 
 ### B.5 — Phase 2b Edge Function migration (Day 29)
 Move `seed_jobs.js` from local Node → Supabase Edge Function. pg_cron 3x/week schedule (not nightly). Removes Mac-must-be-on dependency. Email digest via Resend on completion. **Implement incremental seeding here:** filter by `publishedAt > now() - 48h` before classifying — skip jobs already in DB by canonical ID. Target: ~$5-10/month seed cost vs ~$90/month nightly full re-seed. Full TRUNCATE + re-seed reserved for major schema changes only.

@@ -197,6 +197,9 @@ Total: 0-100. Priority_boost score inflation removed Day 24 A.5. Sort: `[bucketM
 | 4.22 | Opportunity jobs not suppressed from future searches | P1 | **FIXED Day 26** — addJobAsOpportunity() pushes to m0SkippedJobs with reason='opportunity_created'. |
 | 4.23 | M1A workspace uses 5-dim scoring vs search card 4-dim — dimensions mismatch | P1 | Open — Phase B (B.9 roadmap item) `[FOLLOW-UP]` |
 | 4.24 | Dream Companies autocomplete showing email — regressed | P1 | Open `[FOLLOW-UP]` |
+| 4.25 | Resume + career profile stored in localStorage only — lost on device/browser switch. Mobile users see resume banner even after desktop upload. Supabase persistence needed (`rg_user_profile` table). | P0 pre-launch | Open — Phase B session B.4 `[FOLLOW-UP]` |
+| 4.26 | Skipped jobs, saved jobs, opportunity suppression all localStorage-only — reset on cache clear, device switch, incognito. Supabase persistence needed (`rg_user_job_actions` table: user_id + job_id + action_type). | P1 pre-launch | Open — Phase B session B.4 `[FOLLOW-UP]` |
+| 4.27 | Mobile layout: welcome overlay renders partially on right side in Matches view on mobile — onboarding panel not hidden on mobile. Fix naturally in B.1 redesign. | P1 | Open — fix in B.1 `[FOLLOW-UP]` |
 
 ### 5.1. Screens and wiring
 
