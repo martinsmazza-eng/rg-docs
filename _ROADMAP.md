@@ -1,6 +1,6 @@
 # Role Garden — Sprint Roadmap
 
-> **Last updated:** Day 26 — Friday June 19, 2026 (A.8.6 complete + card fixes + onboarding flow)
+> **Last updated:** Day 27-28 — Tuesday June 24, 2026 (Data infrastructure + Security + Design system + Email infrastructure)
 > **Purpose:** Sprint state + session-by-session plan through V1 paid-media launch (7/6/2026).
 > **Framing lock:** V1 (current build, expanding audience) + V2 (next major) only. No alpha/beta/V1.5.
 
@@ -10,14 +10,14 @@
 
 | Field | Value |
 |---|---|
-| **Current phase** | V1 — Phase A Foundation Refinement |
-| **Day 24** | Wednesday June 17, 2026 |
+| **Current phase** | V1 — Phase B Experience Overhaul |
+| **Day 28** | Tuesday June 24, 2026 |
 | **Paid media target** | Sunday July 6, 2026 (Day 40) |
 | **Pace** | ~5-7h/day solo |
-| **index.html** | ~14,000+ lines, ~800 KB |
-| **seed_jobs.js** | Day 25 A.8.5 patch (1,602 lines — Haiku title fallback, 25 buckets, remote fix, non-US remote exclusion) |
-| **Pool state** | ~1,478 jobs (pre-full-reseed). Full re-seed pending A.4 completion |
-| **Cost per seed** | ~$5.30 current → target ~$2 after full re-seed with A.2+A.3 fixes |
+| **index.html** | ~16,460 lines (post June 24 data infrastructure session) |
+| **seed_jobs.js** | Day 25 A.8.5 patch (1,602 lines) |
+| **proxy.js** | rg-proxy repo — Klaviyo endpoint added June 24 |
+| **Pool state** | 8,848 jobs, 147 companies (post full re-seed Day 25) |
 
 ---
 
@@ -25,7 +25,7 @@
 
 | Phase | Days | Theme | Est. effort |
 |---|---|---|---|
-| **A** | 24-25 | Foundation refinement | ~7-9h |
+| **A** | 24-25 | Foundation refinement | COMPLETE |
 | **B** | 26-32 | Experience overhaul | ~40-55h |
 | **C** | 33-39 | Launch readiness | ~30-45h |
 | **Launch** | 40 (Sun 7/6) | Paid media on | — |
@@ -33,258 +33,163 @@
 ---
 
 ## PHASE A — Foundation refinement
-
-**Days 24-25 (Wed-Thu June 17-18). Goal: fix what's broken in search, unblock dev flow.**
-
-### Session A.1 — Workflow documentation cleanup
-**Status: SHIPPED Day 24**
-- Workflow doc updated, DRIVER_CHAT_OPENING aligned, brief template finalized
-- rg-docs GitHub repo created (CURRENT_STATE + ROADMAP source of truth)
-- Build chat opening prompt format standardized (chat name + copyable block)
-- Post-session doc update workflow locked (driver chat owns roadmap/current state, build chat proposes session-scoped changes only)
-
-### Session A.2 — Ashby adapter bug fix
-**Status: SHIPPED Day 24** (commit `213b61a`)
-- Root cause: `data.jobPostings` → `data.jobs` key mismatch (API returns `jobs`, adapter read `jobPostings`)
-- Redundant department filter removed (TITLE_PREFILTER_REGEX + Haiku handle role filtering)
-- US-only location filter added to AshbyAdapter (matches Lever adapter pattern)
-- Null-guard added: warns with slug + actual keys if API shape changes
-- Field mapping audit: all fields already correct, no changes needed
-- Sentry / Demandbase / Ramp confirmed Ashby-only (no Greenhouse conflict)
-- Mini-seed verified: Ramp + OpenAI both returned `raw_jobs > 0`, inserts confirmed
-- **~1,400 Ashby jobs recoverable on next full seed**
-
-### Session A.3 — Multi-role Haiku classifier rewrite
-**Status: SHIPPED Day 24**
-- Root cause: prompt explicitly dropped all non-sales roles as `role_match_no` + `reject_other`
-- Prompt rewritten: classifier now handles industry fit only — all knowledge-worker roles pass (sales, engineering, PM, design, data, marketing, ops, finance, legal)
-- `role_match_no` now reserved for non-knowledge-worker roles only (warehouse, food service, clinical frontline, manual labor)
-- `role_match` schema simplified: yes/adjacent/no → yes/no (`adjacent` was legacy artifact)
-- `role_match` fallback changed: `|| 'no'` → `|| 'yes'` (parse failures no longer silently drop jobs)
-- Static checks passed. Mini-seed verified in build environment. Full seed pending A.4.
-
-### Session A.4+A.6 — Title bucket expansion + Greenhouse US filter + Dedup fix
-**Status: SHIPPED Day 24** (1,464 → 1,539 lines)
-- Greenhouse US-only filter added (`isGreenhouseUSJob()` — conservative string matching, all three adapters now covered)
-- `assignTitleBucket(title, company)` — 15-bucket regex function replaces hardcoded `account_executive` in all 3 adapter `normalizeToJobSchema()` calls
-- "Lead, Incidents & Escalations, User Operations" (OpenAI) root cause fixed — returns `null`, not `account_executive`
-- 15 title buckets: account_executive, sales_director, business_development, revenue_operations, customer_success, product_manager, software_engineer, data, design, marketing, operations, consulting, finance, legal, people_hr
-- `expires_at` corrected: `posted_at + 14d` → `now() + 60d` on insert across all adapters
-- JS slug dedup in `main()` — Stripe/HubSpot/Klaviyo now processed once per seed run
-- `priority_boost` +10 score inflation confirmed in `index.html` only — deferred to A.5
-- Backup: `~/Documents/RG_backups/seed_jobs_pre_A4A6_20260617_190342.js`
-
-### Session A.6 — Dupe DISTINCT fix
-**Status: SHIPPED Day 24** — bundled into A.4+A.6 above.
-
-### Session A.5 — Sort by bucket-match-tier + priority_boost cleanup
-**Status: SHIPPED Day 24** (commit `8ea14ca`, +38/-29 lines in index.html)
-- `getBucketMatchTier(job, userPrimaryBuckets)` — Tier 2 = exact primary bucket match, Tier 1 = cluster-adjacent, Tier 0 = out-of-cluster
-- `renderJobResults` sort replaced with `[bucketMatchTier DESC, score DESC]`
-- `priority_boost` +10 score inflation removed — JSearch gone, all jobs ATS-direct
-- `priority_boost` field preserved on job objects for A.7 pre-rank
-- `userPrimaryBuckets` resolved from `localStorage.rg_career_profile_cache` at sort time — no signature changes
-- Smoke test confirmed tier sort firing. Tier 2: 0 due to profile extraction bug (see A.5.5)
-
-### Session A.5.5 — Profile extraction fix + hide left rail chips
-**Status: SHIPPED Day 24**
-- Root cause: `saveResumeText()` didn't call `extractCareerProfile()` — only `obFinish()` did. Banner/Profile upload path left users with no buckets → Tier 2 always 0.
-- Fix: `extractCareerProfile()` added to `saveResumeText()` — fires on all upload paths. On success writes buckets to cache, triggers `runM0Search()` with 300ms delay.
-- TITLES and INDUSTRIES hidden from left rail (`display:none`). DOM intact for Phase B re-show.
-- LOCATION, REMOTE toggle, DREAM COMPANIES unchanged and visible.
-- Closes P1 bugs 4.6 + 4.7. 15,581 → 15,613 lines.
-
-### Session A.7.5 — Load More CSS + Dream Companies guard + Cache warm
-**Status: SHIPPED Day 25** (15,738 → 15,787 lines, +49)
-- Load More button moved inside `#m0Out` — was flex-sibling of m0Out in `.discover-shell`, rendered top-right as third column
-- Boot-time email guard: filters `@` from `rg_user_intent.target_companies` on every startup — clears legacy-contaminated localStorage
-- Cache warm: `rg_last_search_cache` now saves `preRanked` pool + `cascadeOffset` — cascade resumes on return visit without re-fetch, pre-scores next batch in background
-**Status: OPEN**
-- **Pre-rank (Stage 1, client-side, 0 cost):** Sort 300 jobs before Haiku sees them using lightweight signals: (1) exact title_bucket + exact industry + priority_boost, (2) exact title_bucket + exact industry, (3) exact title_bucket + cluster industry + priority_boost, (4) exact title_bucket + cluster industry, (5) cluster industry + priority_boost, (6) cluster industry only, (7) everything else. Best-aligned jobs guaranteed to surface in batch 1. Runs in ~5ms, no API call.
-- **Remove priority_boost score inflation:** Already removed in A.5. Pre-rank uses field as ordering signal only.
-- **Cascade scoring (Stage 2):** Score first 10 in pre-ranked order immediately. Background pre-score next batch while user reads batch 1. Load More → instant render (already scored). Rolling 1-batch-ahead pre-fetch.
-- **Skeleton cards:** Show placeholders on Load More click, fill as scores arrive. Safety net if pre-score not ready.
-- **300 cap + stale-while-revalidate:** Fetch 300 from Supabase. No arbitrary cap — pre-rank ensures quality at top. Returning users served cache instantly, fresh fetch runs in background, soft-refresh when ready.
-- **Chip changes:** Pre-rank re-runs client-side against same 300 jobs on chip change. No new Supabase query unless location/remote changes.
-- Expected: ~75% Haiku cost cut on initial search + near-zero perceived latency
-- Brief: `RG_D25_A7_prerank_cascade_scoring_brief.md`
-
-### Session A.8.5 — Haiku title bucket + remote fix + new verticals + non-US remote exclusion
-**Status: SHIPPED Day 25** (1,539 → 1,602 lines, +63)
-- Haiku `role_category` added to classification prompt — zero extra cost, fills null title_bucket gaps
-- Remote field fix: Ashby `isRemote` boolean + "United States"/blank → `remote=true` across all adapters
-- 25-bucket classifier: 12 new industry verticals added to prompt + `VALID_BUCKETS`
-- Non-US remote exclusion: "Remote - Ireland", "Remote Canada" etc. now correctly excluded
-- Mini-seed: Trade Desk ✅, OpenAI ✅ (new verticals appearing in secondary buckets), Deel 0 jobs (no US remote roles posted)
-- `[FOLLOW-UP]` Remove `priority_boost` from `preRankJobs()` tier logic — 2-line fix in index.html
-- `[FOLLOW-UP]` Add 12 new verticals to `INDUSTRY_BUCKET_CLUSTERS` in index.html — Phase B
-- `[FOLLOW-UP]` Strip JSearch references from seed header log
-
-### Session A.8.6 — Cascade render fix + auth timing fix (Day 26 priority)
-**Status: OPEN — P0, fix before paid media**
-- **Bug 4.11:** Auth session not ready when `runM0Search()` fires after onboarding → 401 → no results. Fix: await Supabase session confirmation before firing search.
-- **Bug 4.12:** Cascade mixing scored + unscored cards — unscored cards rendering without Why/Challenge/summary. Fix: only render scored cards, show skeleton/placeholder for unscored.
-- **Bug 4.13:** Load More button disappearing after Search button click. Fix: related to cascade render, fix together with 4.12.
-- Brief: `RG_D26_A8p6_cascade_auth_fix_brief.md`
-
-
-**Status: OPEN**
-- Verify all Phase A patches applied
-- TRUNCATE `rg_jobs_index`
-- Full seed run (expect ~20-30 min, **~3,000-4,000 jobs** across 15 title buckets from 94 companies, ~$3-4 cost)
-- Browser smoke test incognito — verify multi-role results surfacing (PM, engineer, designer, AE)
-- Pattern B analysis on new log
-- Verify `expires_at` populated on all rows
-- **Phase A close target:** ~3,000-4,000 jobs, 15 title buckets, multi-role, cleanly pre-ranked + sorted, ~$3/seed, all P0 bugs fixed
+**COMPLETE — All sessions shipped Days 24-25.**
+See shipped milestones audit trail below for full detail.
 
 ---
 
 ## PHASE B — Experience overhaul
 
-**Days 26-32 (Fri June 19 → Thu June 25). Goal: visible product upgrades.**
+**Days 26-32. Goal: V3 redesign, nightly seeds, monetization infra, data layer.**
 
-### A.8.6 — Cascade render fix + auth timing fix (Day 26, P0 — first session)
-**Status: SHIPPED Day 26**
-- Fix 4.11: auth session not ready after onboarding → 401 → no results. Await Supabase session before firing search.
-- Fix 4.12: cascade mixing scored + unscored cards. Only render scored cards.
-- Fix 4.13: Load More button disappearing on Search click.
+### Data & Experimentation Infrastructure
+**Status: SHIPPED Day 27-28 (June 23-24)**
 
-### B.1 — App shell redesign: 3-col layout + nav + right rail (Day 26-27)
-**Status: OPEN**
-- Top nav: Matches / Applications only. Recruiter/HM/Final Round/Presentation move inside Applications.
-- 3-column layout on Matches page.
-- Left column: rename Saved Matches → Saved Searches, relocate to left rail. Same data model, no backend changes.
-- Right rail top (~66%): Score This Job widget — move existing "New Opportunity" paste box here. After scoring, render result as highlighted card at TOP of center Recommended Matches.
-- Right rail bottom (~34%): Your Profile widget — Career Goal, Location, Industry, Resume filename, Dream Companies N tracked, Edit Profile →. No chips, no strength meter.
-- Dream Companies removed from left rail input — lives in Edit Profile only.
-- Spec: `Role_Garden_V2_App_Design_Spec.docx`
+**Analytics + identity (index.html +465 lines):**
+- `rg_user_id` generated on first pageview via localStorage — single permanent ID
+- `RG_EXPERIMENT_CONFIG` — control baseline (jd_first / 14_day_cc / $39 / assessment_first)
+- `rgGetOrCreateAnonId` / `rgGetSessionId` — persistent identity
+- `rgCaptureUTMs` + `deriveTrafficSource` — first-touch attribution, never overwritten
+- `rgAssignCohort` — experiment variant assignment on first visit, never overwritten
+- `rgSetEntryPoint` — first meaningful action wins
+- `rgFirePixelEvent` — dataLayer event mapping for GTM → GA4
+- `rgTrack` — unified event logger to Supabase rg_events + dataLayer
+- `rgInitAnalytics` — single init call wired at boot before authBootGate
+- `rgPersistCohortOnSignup` — writes cohort + attribution to users table on signup only
+- `rgComputePersonaCluster` — rule-based persona bucketing
+- `rgPersistResumeProfile` — writes resume-derived fields post-extraction
+- `rgTriggerPresignupEmail` — calls Render proxy /api/klaviyo/presignup
+- `obStep2CanProceed` / `obCaptureEmail` — email capture on resume upload step (required)
 
-### B.2 — Match card polish (Day 27-28)
-**Status: OPEN**
-- Premium card spacing and typography per design spec
-- Fair Match amber bar minimum 50%
-- No red states, no numeric scores
-- Full card content always present (cascade regression resolved by A.8.6)
-- Spec: `Role_Garden_V2_App_Design_Spec.docx` Phase 2
+**GTM + GA4:**
+- GTM container GTM-P7WVMPZT installed in index.html (head + body)
+- GA4 property: Role Garden / G-Y3XBW9PR41
+- 7 GTM tags published: Google Tag GA4, GA4 JD Pasted, Resume Uploaded, Opportunity Created, Lead, Signup, Trial Activated
+- rg_trial_activated marked as GA4 key event ($39, once per session)
 
-### B.3 — Move scoring + card prompts to Render proxy (pre-paid-media security)
-**Status: OPEN**
-- Currently: Haiku scoring prompt + card generation prompt live in index.html → visible in browser DevTools to anyone
-- Fix: move prompt assembly to `rg-proxy` (Render). Browser sends job data + user profile. Proxy assembles prompt, calls Anthropic, returns scored result. Prompt never reaches browser.
-- Protects core IP: scoring rubric (4-dim weights), card generation (Why/Challenge/Fit/Recommendation), match label logic
-- ATS adapter URLs are public APIs — no protection needed there. Company registry + slug mappings already protected in Supabase.
-- Custom direct adapters (Google, Meta) will live in proxy by default — naturally protected.
-- Touches: `rg-proxy` (Render) + `index.html` (remove prompt, send data to proxy instead)
-- Risk: adds latency if proxy is cold-starting on Render free tier. Confirm Render instance is always-on.
+**Supabase schema (all 4 blocks verified):**
+- Block A: ALTER TABLE users — 51 new columns (cohort, attribution, resume profile, funnel timestamps, trial config, legal)
+- Block B: trg_set_rg_user_id trigger — auto-populates rg_user_id on INSERT, backfilled existing rows
+- Block C: rg_events table + 4 indexes + RLS policies
+- Block D: rg_email_captures table + indexes
 
-### B.3 — Score This Job widget
-**Status: BUNDLED INTO B.1** — right rail widget + scored card at top of results is part of B.1 shell redesign.
+**Security fix (June 24):**
+- RLS enabled on all 10 public Supabase tables (was fully exposed)
+- Confirmed: client uses anon key only. service_role in server-side scripts only.
 
-### B.4 — Supabase persistence: resume + profile + user job actions (pre-launch, P0)
-**Status: OPEN — must ship before V1 paid media launch**
+**Klaviyo + pre-signup email:**
+- Klaviyo account created. Audience ID: 28979d50-75e8-42ef-87ac-68e4e5dd6edb
+- List: pre_signup_leads (ID: XQ9VMi)
+- 5 custom properties: capture_context, homepage_variant, utm_source, traffic_source, converted
+- /api/klaviyo/presignup endpoint added to proxy.js — adds contact to Klaviyo + sends Touch 1 via Resend
+- Touch 1 email: "Your assessment is ready" — verified delivered ✅
+- KLAVIYO_API_KEY added to Render env vars
 
-Mobile users lose resume, profile, skipped jobs, saved jobs, and dream companies on device/browser switch. All currently localStorage-only. This is a trust issue at $39/mo.
+**Open items from data infrastructure:**
+1. Extend extractCareerProfile prompt — 5 missing fields (current_title, current_company, years_experience, education_level, location_raw) — IN BUILD CHAT
+2. 4 funnel queries to save in Supabase SQL editor — IN BUILD CHAT
+3. Fix presignup email CTA URL + remove broken unsubscribe link — IN BUILD CHAT
+4. Apply brand email template to Touch 1, Confirm signup, Reset password — IN BUILD CHAT
+5. Touch 2 + Touch 3 Klaviyo flows — MANUAL TASK (Marcelo)
+6. Klaviyo → Meta integration — MANUAL TASK (Marcelo)
+7. Klaviyo → Google Ads integration — MANUAL TASK (Marcelo)
+8. GTM tags + triggers configuration (6 triggers, 7 tags) — MANUAL TASK (Marcelo)
+9. rg_trial_activated as primary conversion in Meta + Google Ads — MANUAL TASK (Marcelo)
 
-**Scope:**
+**North star metrics locked:**
+- Layer 1: visitor → trial_activated (CC entered) — primary optimization target
+- Layer 2: day_3_return_rate — leading indicator
+- Layer 3: trial → paid — watch but don't optimize until 50+ conversions
 
-Two new Supabase tables:
+### Design System + V3 Mockups
+**Status: SHIPPED Day 28 (June 24)**
 
-`rg_user_profile`:
-- `user_id` (FK to auth.users)
-- `resume_text` — cleaned resume string
-- `career_profile_cache` — JSON (extracted buckets, career goals, industries)
-- `updated_at`
+**Design system decisions locked:**
+- Two layout patterns: Conversion (single column centered, no rail) vs Product (two column + right rail)
+- Matches IA frozen — visual refinement only, no restructuring
+- Personality: Helpful, Smart, Modern, Professional, Optimistic
+- References: Airbnb, Linear, Headspace, Calm, Mercury
+- Design test: "Trusted career advisor" vs "software to operate" — first = approve
+- Signup framing corrected: "Start your free trial" not "see your results"
+- Entry points for signup: Pursue This, Start Free Trial, Load More, Find Recommendations, Workspace CTA
 
-`rg_user_job_actions`:
-- `user_id` (FK to auth.users)
-- `job_id` — references rg_jobs_index
-- `action_type` — enum: `skipped | saved | opportunity_created`
-- `created_at`
+**7 mockups built and approved:**
+- matches_upload_v3.html — single column conversion, resume + email in one card, trust strip
+- matches_assessed_v3.html — visual refinement only, IA unchanged
+- matches_empty_v3.html — visual refinement only
+- signup_v3.html — "Start your free trial" headline, conditional opp chip, trial callout, what happens next
+- trial_v3.html — single column, feature list + timeline before CC form
+- homepage_v3.html — refined, tighter spacing, harmonized tokens
+- application_v3.html — not modified this phase, do not redesign
 
-**Frontend changes:**
-- On resume upload: write to Supabase + localStorage (dual write)
-- On auth SIGNED_IN: read from Supabase, hydrate localStorage if empty
-- On skip/save/opportunity: write to Supabase + localStorage
-- On search load: merge Supabase actions into m0SkippedJobs/m0SavedJobs
+**Design brief:** NOT YET WRITTEN — next driver session item
 
-**RLS:** users can only read/write their own rows.
+### B.1 — V3 redesign (JD-first, two-column Matches, conversion layouts)
+**Status: PENDING — design brief not yet written**
+- Mockups approved, ready to brief
+- Blocked on: design brief
 
-**Note:** Dream Companies and onboarding state also need persistence — bundle into same session.
+### B.2 — Nightly seed Edge Function
+**Status: PENDING**
 
-### B.4b — Frontend design polish: typography + spacing
-**Status: OPEN**
-Premium spacing, Manrope tuning, card hover states + transitions. (Previously B.4 — renumbered.)
+### B.3 — Prompt security (move Haiku prompts to Render proxy)
+**Status: PENDING**
+- Render always-on required before B.3 ships
 
-### B.5 — Phase 2b Edge Function migration (Day 29)
-Move `seed_jobs.js` from local Node → Supabase Edge Function. pg_cron 3x/week schedule (not nightly). Removes Mac-must-be-on dependency. Email digest via Resend on completion. **Implement incremental seeding here:** filter by `publishedAt > now() - 48h` before classifying — skip jobs already in DB by canonical ID. Target: ~$5-10/month seed cost vs ~$90/month nightly full re-seed. Full TRUNCATE + re-seed reserved for major schema changes only.
+### B.4 — Supabase persistence (resume + career profile + job actions)
+**Status: PENDING**
+- P0 pre-launch. Career profile + skipped/saved/opportunity actions all localStorage-only.
+- More urgent given JD-first flow — state breaks on device switch.
 
-### B.6 — Custom system adapters: Google + Meta (Day 25 post-Phase-A), Amazon (Day 30), Workday spike (Day 26)
-- **Google** (`careers.google.com`) — undocumented JSON API, stable for years. ~3-4h. Pre-V1.
-- **Meta** (`metacareers.com`) — similar undocumented API, reasonably stable. ~3-4h. Pre-V1.
-- **Amazon** (`amazon.jobs`) — paginated, rate-limited, more complex. ~6-8h. Phase B Day 30.
-- **Workday spike** (EY only, timebox 4h) — Workday public job board XHR endpoint. If pattern works, add 2-3 more consulting firms (KPMG, Deloitte). If fragile, punt to V2. High value (consulting = large user segment). Day 26.
-- Google + Meta alone add ~2,000-3,000 premium jobs from two of the most recognizable employers globally.
+### B.5 — Stripe integration + trial paywall
+**Status: PENDING — significant gap before paid media**
+- CC/trial flow does not exist in product yet
+- C.6 on roadmap but may need to move earlier given July 6 target
 
-### B.7 — OAuth: Google + Microsoft (Day 30)
-Supabase Auth providers. Update signup + login flows.
+### B.6 — Custom system adapters: Google + Meta
+**Status: PENDING**
 
-### B.8 — M1A Deeper Match Analysis (Day 31)
-New Haiku call on opp creation: resume + JD + career profile + score breakdown → 3-4 paragraphs employer-specific reasoning. ~$0.003/opp.
+### B.7 — OAuth: Google + Microsoft
+**Status: PENDING**
 
-### B.9 — M1A 5-dim → 4-dim migration (Day 31)
-M1A workspace `runM1` still bundles legacy 5-dim scoring. Migrate to 4-dim (Industry/Role/Seniority/Skills) for consistency with M0. Touch points: L2431, L3223.
+### B.8 — M1A Deeper Match Analysis
+**Status: PENDING**
 
-### B.10 — Admin panel + Observability stack (Day 32)
-PostHog event capture (app_loaded, search_completed, card_clicked, m1a_opened, opp_created, m1b/c/d_run). Sentry error tracking. Admin route `/admin?key=...` with manual seed trigger + recent seed runs view.
+### B.9 — M1A 5-dim → 4-dim migration
+**Status: PENDING — P1 4.23**
 
-**Phase B close target:** Visible redesign live, nightly seeds automated, multi-role pool, OAuth, deeper M1A. Pool ~3,000-4,500 jobs.
+### B.10 — Admin panel + Observability
+**Status: PENDING**
 
 ---
 
 ## PHASE C — Launch readiness
 
-**Days 33-39 (Fri June 26 → Thu July 2). Goal: monetization + legal + polish.**
+**Days 33-39. Goal: monetization + legal + polish.**
 
-### C.1 — Resume engine: structured extraction (Day 33)
-`parseResumeStructured(rawText)` → Haiku → JSON {first_name, last_name, email, summary, rest_of_resume}.
+### C.1 — Resume engine: structured extraction
+### C.2 — Resume engine: tailoring + PDF
+### C.3 — M1D Strategy Coach text-only
+### C.4 — STAR library workflow revisit
+### C.5 — Mobile browser experience
+### C.6 — Stripe integration + pricing revisit
+### C.7 — Transactional emails via Resend
+**Note: Partially addressed June 24 — Confirm signup + Reset password templates redesigned. Trial-specific emails (day 7 reminder, day 13 warning, expired, payment success/failure, cancellation) remain Phase C work.**
 
-### C.2 — Resume engine: tailoring + PDF (Day 33)
-`tailorResumeSummary(baseResume, oppJD)` → Sonnet → tailored summary. HTML template → LightningPDF → email-attachable PDF. One ATS-friendly template.
+### C.8 — Marketing site (Framer)
+**Note: Homepage mockup (homepage_v3.html) built June 24 — available as design reference for Framer build.**
 
-### C.3 — M1D Strategy Coach text-only (Day 34)
-Sonnet-generated. Accordion structure. Sections: 5-min pitch, proof points, anticipated objections, questions to ask, the close. NO deck export in V1 (locked June 5).
+### C.9 — Industry expansion (12 new verticals)
+**Note: P1 4.10 — INDUSTRY_BUCKET_CLUSTERS missing these verticals in frontend.**
 
-### C.4 — STAR library workflow revisit (Day 35)
-Per-section accordions, Skills section addition.
+### C.10 — ToS lawyer review
+**Note: TOS updated June 24 — Section 7.2(c) added (resume data → ad audience clause). Lawyer review target July 3.**
 
-### C.5 — Mobile browser experience (Day 35)
-Search rail collapse, card stack, workspace tabs as horizontal scroll. No swipe-to-save (V2).
+### C.11 — Trademark filing
+### C.12 — robots.txt + Cloudflare hardening
+**Note: P1 4.15 — noindex removal required before July 6. robots.txt change = 2-line fix.**
 
-### C.6 — Stripe integration + pricing revisit (Day 36)
-Card-on-signup flow. Trial countdown UI. Webhook handlers (trial_will_end, payment_succeeded, payment_failed, subscription_canceled). Pricing revisit: re-evaluate $39/mo given ATS-direct positioning.
-
-### C.7 — Transactional emails via Resend (Day 37)
-Welcome, trial day 7 reminder, trial day 13 warning, trial expired, payment success/failure, subscription canceled.
-
-### C.8 — Marketing site (Framer) (Day 37)
-Landing page for paid traffic. Hero, feature sections, pricing card. ToS + Privacy Policy pages.
-
-### C.9 — Industry expansion (Day 38)
-12 new industry verticals, each with curated company list + potential cluster groupings: legaltech, hrtech, proptech, climate_clean_energy, logistics, insurtech, govtech, gaming, consumer_apps, hospitality_travel, food_beverage_tech, manufacturing_tech. Title buckets already expanded to 15 in A.4 — no title work needed here. Focus is company registry expansion per new vertical. Role bucket coverage (revenue_operations, customer_success, partnerships, business_development) already handled in A.4.
-
-### C.10 — ToS lawyer review (Day 38)
-Engage attorney with `tos_resume_consent_clause_draft.md`. Start outreach Day 33 (allow ~5-7 days). Est. $1,500-3,000.
-
-### C.11 — Trademark filing — USPTO Class 42 (Day 39)
-"Role Garden" trademark, SaaS class. ~$300. 6-12 month registration timeline.
-
-### C.12 — robots.txt + Cloudflare hardening (Day 39)
-robots.txt blocks crawlers from `app.rolegarden.com`. Cloudflare in front of Netlify for DDoS + edge caching.
-
-### C.13 — Incident response plan (Day 39)
-Security breach playbook, lawsuit/C&D escalation, lights-off procedure. Kill-switch: Render proxy toggle = 30 seconds offline.
-
-**Phase C close:** Stripe paywall live, transactional emails wired, marketing site live, legal hardened, broader industry coverage. **Paid media safe to launch Day 40.**
+### C.13 — Incident response plan
 
 ---
 
@@ -294,9 +199,24 @@ Security breach playbook, lawsuit/C&D escalation, lights-off procedure. Kill-swi
 - Google Ads launch
 - LinkedIn Ads launch
 - AdCreative.ai ($29/mo) for creative variations
-- GA4 + UTM discipline + ChartMogul activation
-- Monitor: signups, trial-to-paid, churn
-- Daily PostHog dashboard reviews for first 2 weeks
+- GA4 + GTM + Klaviyo fully configured
+- UTM discipline enforced
+- Monitor: signups, trial activation rate, day 3 return rate, trial-to-paid
+
+---
+
+## Open P1s (active)
+
+| # | Issue | Status |
+|---|---|---|
+| 4.9 | priority_boost still in preRankJobs() — 2-line fix | Open |
+| 4.10 | INDUSTRY_BUCKET_CLUSTERS missing 12 new verticals | Open — Phase C |
+| 4.15 | rolegarden.com noindex — remove before paid media | Open — must fix before July 6 |
+| 4.23 | M1A 5-dim vs 4-dim mismatch | Open — Phase B B.9 |
+| 4.24 | Dream Companies autocomplete showing email | Open |
+| 4.25 | Resume + career profile localStorage only — Supabase persistence needed | Open — Phase B B.4 |
+| 4.26 | Skipped/saved/opportunity actions localStorage only | Open — Phase B B.4 |
+| 4.27 | Mobile welcome overlay partial render | Open — fix in B.1 |
 
 ---
 
@@ -305,10 +225,10 @@ Security breach playbook, lawsuit/C&D escalation, lights-off procedure. Kill-swi
 | # | Item | Est. effort |
 |---|---|---|
 | V2.1 | Employer self-service onboarding | ~10-15h |
-| V2.2 | AI agents (RG Ops Agent suite — title filter, logo refresh, seed monitor, slug discovery) | ~15-20h |
-| V2.3 | Workday adapter (Disney, Salesforce, Bloomberg, Comcast, JPM) | ~14-18h |
-| V2.4 | Feedback tool (floating button + screenshot + Supabase storage + email) | ~3-4h |
-| V2.5 | International expansion (UK/EU/Canada) | ~6-8h |
+| V2.2 | AI agents (RG Ops Agent suite) | ~15-20h |
+| V2.3 | Workday adapter | ~14-18h |
+| V2.4 | Feedback tool | ~3-4h |
+| V2.5 | International expansion | ~6-8h |
 | V2.6 | Bundle migration (single HTML → React/Vite) | ~40-80h |
 
 ---
@@ -321,13 +241,14 @@ Security breach playbook, lawsuit/C&D escalation, lights-off procedure. Kill-swi
 | 11 | June 2 | $39 charm pricing locked, auto-search trial+paid parity |
 | 12 | June 3 | Saved searches cap 10, daily auto-search toggle, rail IA |
 | 13 | June 4 | scoreJobs Haiku rewrite, 4-dim, career profile, card redesign (Day 10A). M1D V1 = text-only locked |
-| 14 | June 5 | Phased launch timeline locked: 6/19 close-friends → 7/6 paid media |
+| 14 | June 5 | Phased launch timeline locked: 7/6 paid media |
 | 17 | June 8 | Day 10A.4 polish, frameworkless prep ships |
-| 18 | June 11 | Phase 1 nightly index v5.2 (337 unique rows, 78 queries, 600 inserted) |
-| 19 | June 12 | Browser verify Phase 1, GitHub setup, workflow doc plan |
-| 20 | June 13 | Phase 2a Haiku classification at seed (v6.0, 673 inserted, 38.5% drop rate) |
-| 22 | June 15 | Phase 2c ATS adapter framework (v7.0, Greenhouse+Lever+Ashby, 49 companies tagged, 1,348 inserted) |
-| 23 | June 16 | JSearch removed, mega-cluster buckets, Logo.dev chain, priority_boost fix, 92 ATS-tagged companies, 1,478 inserted ATS-only. V1/V2 framing locked. 5 workflow startup docs. |
-| 24 | June 17 | **A.1:** workflow + docs. **A.2:** Ashby adapter fixed. **A.3:** multi-role classifier. **A.4+A.6:** 15 title buckets, Greenhouse US filter, slug dedup, expires_at. **A.5:** bucket-tier sort + priority_boost inflation removed. **A.5.5:** profile extraction fix + chip hide. **A.7:** pre-rank + cascade scoring + 300 cap + Load More. 67 new vertical companies + logos. |
-| 25 | June 18 | **A.7.5:** Load More CSS fix, Dream Companies email guard, cache warm. **A.7.5 patch:** Load More DOM fix, autocomplete guard. **A.8.5:** Haiku title fallback, 25 buckets, remote fix, non-US remote exclusion. **A.8:** Full re-seed 8,848 jobs, 147 companies, 226 AE remote ✅. **Marketing:** rolegarden.com live, noindex, OG tags, favicon. HubSpot/Apollo slugs fixed. |
-| 26 | June 19 | **A.8.6:** auth timing (onAuthStateChange gate), cascade render (validScored filter), Load More (skeleton detach/re-attach), onboarding loading state (series not parallel). **Card fixes:** stripHtml regex, scoreJobs batch 6→10, jobIdx -1 bug, saveSkipped() added, skip picker removed, M1 auto-run removed, opportunity suppression. **Marketing:** LinkedIn mention removed, mobile hero hidden. **Open P1s:** 4.9 priority_boost, 4.15 noindex, 4.23 M1A dim mismatch, 4.24 Dream Companies email regression. |
+| 18 | June 11 | Phase 1 nightly index v5.2 (337 unique rows) |
+| 19 | June 12 | Browser verify Phase 1, GitHub setup |
+| 20 | June 13 | Phase 2a Haiku classification at seed (v6.0, 673 inserted) |
+| 22 | June 15 | Phase 2c ATS adapter framework (v7.0, Greenhouse+Lever+Ashby, 1,348 inserted) |
+| 23 | June 16 | JSearch removed, mega-cluster buckets, Logo.dev, 92 ATS companies, 1,478 inserted. V1/V2 framing locked. |
+| 24 | June 17 | A.1-A.5.5: workflow docs, Ashby fix, multi-role classifier, 15 title buckets, bucket-tier sort, profile extraction fix, chip hide. |
+| 25 | June 18 | A.7.5-A.8: Load More fix, cache warm, Haiku title fallback, 25 buckets, remote fix. Full re-seed: 8,848 jobs, 147 companies. rolegarden.com live. |
+| 26 | June 19 | A.8.6: auth timing, cascade render, Load More skeleton, onboarding loading state. Card fixes: stripHtml, batch 6→10, jobIdx, saveSkipped, skip picker removed, M1 auto-run removed, opportunity suppression. |
+| 27-28 | June 23-24 | **Data infrastructure:** GTM (GTM-P7WVMPZT), GA4 (G-Y3XBW9PR41), analytics JS block (+465 lines), Supabase schema (51 columns + rg_events + rg_email_captures), RLS on all 10 tables. **Klaviyo:** pre_signup_leads list, custom properties, /api/klaviyo/presignup endpoint, Touch 1 email verified. **Design system:** layout patterns locked, personality locked, 7 V3 mockups approved. **TOS:** Section 7.2(c) added. **proxy.js:** connected to VS Code, git workflow established. |
