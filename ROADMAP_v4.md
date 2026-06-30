@@ -1,5 +1,5 @@
 # _ROADMAP.md — Role Garden
-**Last updated:** June 29, 2026
+**Last updated:** June 30, 2026
 
 ---
 
@@ -20,17 +20,18 @@
 | June 25 | JD widget removed from app. `rg_marketing_widget.html` standalone page built. `rgCheckAndRunPendingJD()` wired. Pre-signup Klaviyo flows built. |
 | June 26-27 | V4 design pivot (resume-first). Full mock set (16 files) approved. 7-day member journey email spec locked. Mobile mocks built. |
 | June 29 | **Session A shipped — Stripe + Paywall.** Live Stripe account, $39/mo product, webhook configured. `/api/stripe/create-subscription` and `/api/stripe/webhook` endpoints live in proxy. `authBootGate` paywall gate live. `ob_step6` CC form functional (single-column placeholder, not yet matching two-column mock). Klaviyo `active_members` list created and wired. Verified end-to-end with real card on fresh signup — subscription created, Supabase updated immediately, Klaviyo triggered. Two bugs logged for Session B (paywall race condition on fresh signup, pre-existing analytics ReferenceError). |
+| June 29-30 | **Google OAuth wired.** New `role-garden` Cloud project created under `rolegarden.com` org (required setting up Cloud org IAM access — Workspace Super Admin didn't auto-grant Cloud project creation rights). OAuth consent screen configured External, support email routed through new `contact@rolegarden.com` Google Group (Restricted access, invite-only). Client ID + Secret created, wired into Supabase Auth providers, verified enabled. **Microsoft OAuth blocked** — Azure tenant mismatch (`AADSTS50020`) on personal Microsoft account, paused rather than worked around. Revisit this week before Session B. |
 
 ---
 
 ## Current Sprint — To Launch (July 6)
 
 ### Marcelo to-do (manual, no code)
-- [ ] Google Cloud Console — OAuth app → Client ID + Secret → Supabase Auth
-- [ ] Microsoft Azure — App registration → Client ID + Secret → Supabase Auth
-- [ ] Stripe — Create account + product + price ($39/mo) → get price ID
+- [x] Google Cloud Console — OAuth app → Client ID + Secret → Supabase Auth — **DONE June 29-30**
+- [ ] Microsoft Azure — App registration → Client ID + Secret → Supabase Auth — **BLOCKED, AADSTS50020 tenant mismatch, revisit this week**
+- [x] Stripe — Create account + product + price ($39/mo) → get price ID — **DONE June 29**
+- [x] Klaviyo — Create `active_members` list — **DONE June 29**
 - [ ] Klaviyo — Build Touch 2 + 3 pre-signup flows
-- [ ] Klaviyo — Create `active_members` list
 - [ ] Klaviyo — Build Day 0-7 member journey (can build flow now, wire trigger after Stripe)
 - [ ] Klaviyo — Connect → Meta Ads
 - [ ] Klaviyo — Connect → Google Ads
@@ -56,11 +57,16 @@
 - Day-7 failed payment has no automated access revocation (manual process documented in `RG_manual_tasks_guide.md`)
 
 #### Session B — V4 Onboarding + OAuth (depends on OAuth credentials + Stripe)
+**Status: Stripe ✅, Google OAuth ✅, Microsoft OAuth ❌ blocked — brief not yet written, waiting on Azure resolution**
 - 6-step standalone onboarding flow replacing modal overlay
-- Google OAuth wiring (Supabase `signInWithOAuth`)
-- Microsoft OAuth wiring
+- Google OAuth wiring (Supabase `signInWithOAuth`) — credentials ready
+- Microsoft OAuth wiring — credentials NOT ready, blocked on Azure tenant access
 - Mobile reminder email (`/api/resend/reminder` proxy endpoint)
 - Wire "Email me a reminder" link on ob_step2
+- Fix paywall race condition flagged in Session A (CC form sometimes needs hard refresh on fresh signup)
+- ob_step6 visual redesign to match two-column mock (`ob_step6_stripe.html`) — current is single-column placeholder
+- Disable Stripe Link button on card element
+- Add post-payment confirmation/welcome moment before routing to app
 
 #### Session C — V4 Design: Acquisition Funnel
 - `rolegarden.com` homepage build (`homepage_v4c.html` reference)

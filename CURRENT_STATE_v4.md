@@ -1,5 +1,5 @@
 # CURRENT_STATE.md — Role Garden
-**Last updated:** June 29, 2026
+**Last updated:** June 30, 2026
 
 ---
 
@@ -41,8 +41,8 @@ Role Garden is an AI career platform that matches professionals to curated oppor
 | Anthropic | Claude Sonnet 4.5 (prep) + Haiku 4.5 (scoring) via proxy | ✅ Live |
 | GTM | `GTM-P7WVMPZT` — on app.rolegarden.com only | ✅ Live |
 | GA4 | `G-Y3XBW9PR41` — app.rolegarden.com only | ✅ Live |
-| Google OAuth | Not wired | ❌ Pending config |
-| Microsoft OAuth | Not wired | ❌ Pending config |
+| Google OAuth | Wired June 29 — Client ID/Secret in Supabase | ✅ Live |
+| Microsoft OAuth | Blocked on Azure tenant issue | ❌ Pending — revisit this week |
 | Stripe | Live, $39/mo product, 7-day trial wired | ✅ Live |
 
 ---
@@ -94,8 +94,8 @@ Free access exception: `is_free_account` boolean in `users` table. Manual Supaba
 
 ### Authentication
 - Supabase Auth (email + password)
-- Google OAuth: buttons render, NOT wired (credentials needed)
-- Microsoft OAuth: buttons render, NOT wired (credentials needed)
+- Google OAuth: ✅ wired June 29. Cloud project `role-garden` created under `rolegarden.com` org. OAuth consent screen configured (External, support email `contact@rolegarden.com` — new Restricted Google Group). Client ID + Secret created, wired into Supabase Auth providers. Verified enabled.
+- Microsoft OAuth: ❌ blocked — Azure tenant mismatch error (`AADSTS50020`) when signing into Azure portal with personal Microsoft account. Needs resolution before Session B can wire it. Not deferred — revisit this week.
 - Password reset: ✅ working
 - Email confirmation: ✅ working
 
@@ -243,8 +243,8 @@ product_variant:  ['assessment_first']
 ### P1 — before July 6
 | ID | Item |
 |---|---|
-| 4.36 | Google OAuth — not wired (needs Google Cloud Console config) |
-| 4.37 | Microsoft OAuth — not wired (needs Azure config) |
+| 4.36 | ~~Google OAuth — not wired~~ ✅ DONE June 29 |
+| 4.37 | Microsoft OAuth — blocked on Azure tenant mismatch (`AADSTS50020`), personal MS account can't access Entra ID. Revisit this week — likely needs proper tenant setup or different account. |
 | 4.38 | Mobile reminder email (`/api/resend/reminder`) |
 | 4.39 | Klaviyo `active_members` list + Day 0-7 journey |
 | 4.40 | Klaviyo Touch 2 + 3 pre-signup flows |
