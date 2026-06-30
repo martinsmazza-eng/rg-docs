@@ -1,5 +1,5 @@
 # _ROADMAP.md — Role Garden
-**Last updated:** June 27, 2026
+**Last updated:** June 29, 2026
 
 ---
 
@@ -19,6 +19,7 @@
 | June 24 | GTM + GA4 live on app. Analytics JS block (~300 lines). 51-column Supabase schema. Pre-signup email flow (Resend + Klaviyo Touch 1A/1B). Security: RLS on all tables. |
 | June 25 | JD widget removed from app. `rg_marketing_widget.html` standalone page built. `rgCheckAndRunPendingJD()` wired. Pre-signup Klaviyo flows built. |
 | June 26-27 | V4 design pivot (resume-first). Full mock set (16 files) approved. 7-day member journey email spec locked. Mobile mocks built. |
+| June 29 | **Session A shipped — Stripe + Paywall.** Live Stripe account, $39/mo product, webhook configured. `/api/stripe/create-subscription` and `/api/stripe/webhook` endpoints live in proxy. `authBootGate` paywall gate live. `ob_step6` CC form functional (single-column placeholder, not yet matching two-column mock). Klaviyo `active_members` list created and wired. Verified end-to-end with real card on fresh signup — subscription created, Supabase updated immediately, Klaviyo triggered. Two bugs logged for Session B (paywall race condition on fresh signup, pre-existing analytics ReferenceError). |
 
 ---
 
@@ -38,12 +39,21 @@
 
 ### Build sessions (code)
 
-#### Session A — Stripe + Paywall (P0 — write brief first)
-- `/api/stripe/create-subscription` proxy endpoint
-- CC form wired in `ob_step6`
-- Webhook handler for subscription events
-- `authBootGate` paywall check: if no `trial_activated_at` and not `is_free_account` → redirect to Stripe
-- `active_members` Klaviyo trigger on trial activation
+#### Session A — Stripe + Paywall — ✅ SHIPPED June 29
+- `/api/stripe/create-subscription` proxy endpoint — done, verified end-to-end
+- CC form wired in `ob_step6` — done, single-column placeholder layout (two-column mock design is Session B scope)
+- Webhook handler for subscription events — done (`customer.subscription.created/updated/deleted`, `invoice.payment_succeeded/failed`)
+- `authBootGate` paywall check — done, fails open on Supabase error
+- `active_members` Klaviyo trigger on trial activation — done, verified firing on real signup
+
+**Post-ship fix (same day):** Webhook-only Supabase write was unreliable — RLS grants missing on `service_role`, and update matched 0 rows on first-ever subscription (`stripe_customer_id` not yet set, chicken-and-egg). Fixed by writing trial activation to Supabase immediately inside `/api/stripe/create-subscription` (by user ID, not customer ID), with the webhook write now acting as a backup/confirmation path rather than primary.
+
+**Known gaps carried to Session B:**
+- Paywall race condition on fresh signup — sometimes shows old onboarding instead of `ob_step6` on first load, resolves on hard refresh
+- `ob_step6` doesn't yet match the two-column mock (`ob_step6_stripe.html`) — currently single-column
+- No post-payment confirmation message — user lands silently in app after successful charge
+- Stripe Link button not yet disabled on card element
+- Day-7 failed payment has no automated access revocation (manual process documented in `RG_manual_tasks_guide.md`)
 
 #### Session B — V4 Onboarding + OAuth (depends on OAuth credentials + Stripe)
 - 6-step standalone onboarding flow replacing modal overlay

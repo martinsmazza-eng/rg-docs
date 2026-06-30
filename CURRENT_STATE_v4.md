@@ -1,5 +1,5 @@
 # CURRENT_STATE.md — Role Garden
-**Last updated:** June 27, 2026
+**Last updated:** June 29, 2026
 
 ---
 
@@ -43,7 +43,7 @@ Role Garden is an AI career platform that matches professionals to curated oppor
 | GA4 | `G-Y3XBW9PR41` — app.rolegarden.com only | ✅ Live |
 | Google OAuth | Not wired | ❌ Pending config |
 | Microsoft OAuth | Not wired | ❌ Pending config |
-| Stripe | Not set up | ❌ Pending |
+| Stripe | Live, $39/mo product, 7-day trial wired | ✅ Live |
 
 ---
 
@@ -235,9 +235,10 @@ product_variant:  ['assessment_first']
 ### P0 — blocks launch
 | Item | Description |
 |---|---|
-| Stripe integration | CC form, proxy endpoint, webhook handler, paywall gate in authBootGate |
-| V4 onboarding flow in code | 6-step flow exists as mocks only |
+| V4 onboarding flow in code | 6-step flow exists as mocks only — ob_step6 (CC form) is live but not yet wired into the ob_step1-5 sequence |
 | Matches 3-column layout | Career Tracks still on right rail |
+
+**Stripe integration — SHIPPED June 29 (Session A).** CC form (ob_step6, single-column placeholder — full two-column mock design pending Session B), `/api/stripe/create-subscription` and `/api/stripe/webhook` proxy endpoints, paywall gate in `authBootGate`. Verified end-to-end with real card on fresh signup: subscription created, Supabase `users` row updated immediately (not dependent on webhook), Klaviyo `active_members` triggered. Test subscriptions cancelled post-verification.
 
 ### P1 — before July 6
 | ID | Item |
@@ -255,6 +256,14 @@ product_variant:  ['assessment_first']
 | 4.46 | Mobile app experience build (separate session after desktop) |
 
 ---
+
+## Known Bugs (logged, not yet fixed)
+
+| Bug | Severity | Notes |
+|---|---|---|
+| Paywall race condition on fresh signup | Medium | `authBootGate` paywall check sometimes shows old onboarding modal instead of `ob_step6` on first load immediately after signup. Resolves on hard refresh. Root cause not yet diagnosed — suspect timing between Supabase `users` row creation and the paywall query. Logged June 29, reproduced on `rg9` and `rg10` test signups. |
+| `rgInitAnalytics` ReferenceError | Low | `Uncaught ReferenceError: supabase is not defined` in `rgTrack` at L2301, called from `rgInitAnalytics`. Pre-existing, not introduced by Session A. One-line guard fix needed (`typeof supabase !== 'undefined'` check before call). |
+| Stripe Link button on ob_step6 | Low | Stripe.js auto-injects a "Save with Link" button in the card element. Not part of design. Needs `disableLink: true` in Stripe Elements options. Cosmetic only, not blocking. |
 
 ## Mock Inventory (approved, June 2026)
 
