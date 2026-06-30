@@ -21,6 +21,7 @@
 | June 26-27 | V4 design pivot (resume-first). Full mock set (16 files) approved. 7-day member journey email spec locked. Mobile mocks built. |
 | June 29 | **Session A shipped — Stripe + Paywall.** Live Stripe account, $39/mo product, webhook configured. `/api/stripe/create-subscription` and `/api/stripe/webhook` endpoints live in proxy. `authBootGate` paywall gate live. `ob_step6` CC form functional (single-column placeholder, not yet matching two-column mock). Klaviyo `active_members` list created and wired. Verified end-to-end with real card on fresh signup — subscription created, Supabase updated immediately, Klaviyo triggered. Two bugs logged for Session B (paywall race condition on fresh signup, pre-existing analytics ReferenceError). |
 | June 29-30 | **Google OAuth wired.** New `role-garden` Cloud project created under `rolegarden.com` org (required setting up Cloud org IAM access — Workspace Super Admin didn't auto-grant Cloud project creation rights). OAuth consent screen configured External, support email routed through new `contact@rolegarden.com` Google Group (Restricted access, invite-only). Client ID + Secret created, wired into Supabase Auth providers, verified enabled. **Microsoft OAuth blocked** — Azure tenant mismatch (`AADSTS50020`) on personal Microsoft account, paused rather than worked around. Revisit this week before Session B. |
+| June 30 | **LinkedIn OAuth wired (replaces Microsoft as third sign-in option for V1).** Decision: better audience fit for job seekers than Microsoft, and Azure setup was blocked anyway. LinkedIn Developer app created under existing verified Company Page. "Sign In with LinkedIn using OpenID Connect" product requested and approved (openid, profile, email scopes). Client ID + Secret wired into Supabase, redirect URI configured both sides, verified enabled. Note: LinkedIn OAuth ≠ LinkedIn profile import — does not provide work history/resume-equivalent data, authentication only. **Also:** LinkedIn Company Page About/tagline updated to match brand manifesto voice (dropped "AI job-search agent" framing). Facebook Page has the same outdated copy, not yet updated. **Surfaced:** Privacy Policy/ToS not yet live — still on original lawyer-review schedule (target July 3), not a new gap. |
 
 ---
 
@@ -28,7 +29,8 @@
 
 ### Marcelo to-do (manual, no code)
 - [x] Google Cloud Console — OAuth app → Client ID + Secret → Supabase Auth — **DONE June 29-30**
-- [ ] Microsoft Azure — App registration → Client ID + Secret → Supabase Auth — **BLOCKED, AADSTS50020 tenant mismatch, revisit this week**
+- [x] LinkedIn Developer — OAuth app (OIDC) → Client ID + Secret → Supabase Auth — **DONE June 30**
+- [ ] Microsoft Azure — App registration → Client ID + Secret → Supabase Auth — **BLOCKED, AADSTS50020 tenant mismatch. Deprioritized June 30 (LinkedIn used instead for V1). Not launch-blocking, revisit if time allows.**
 - [x] Stripe — Create account + product + price ($39/mo) → get price ID — **DONE June 29**
 - [x] Klaviyo — Create `active_members` list — **DONE June 29**
 - [ ] Klaviyo — Build Touch 2 + 3 pre-signup flows
@@ -57,16 +59,18 @@
 - Day-7 failed payment has no automated access revocation (manual process documented in `RG_manual_tasks_guide.md`)
 
 #### Session B — V4 Onboarding + OAuth (depends on OAuth credentials + Stripe)
-**Status: Stripe ✅, Google OAuth ✅, Microsoft OAuth ❌ blocked — brief not yet written, waiting on Azure resolution**
+**Status: Stripe ✅, Google OAuth ✅, LinkedIn OAuth ✅ — all three sign-in credentials ready. Brief can now be written. Microsoft OAuth deprioritized, not blocking.**
 - 6-step standalone onboarding flow replacing modal overlay
 - Google OAuth wiring (Supabase `signInWithOAuth`) — credentials ready
-- Microsoft OAuth wiring — credentials NOT ready, blocked on Azure tenant access
+- LinkedIn OAuth wiring (Supabase `signInWithOAuth`, provider `linkedin_oidc`) — credentials ready
+- ~~Microsoft OAuth wiring~~ — deprioritized, not in Session B scope. Revisit separately if Azure access resolves.
 - Mobile reminder email (`/api/resend/reminder` proxy endpoint)
 - Wire "Email me a reminder" link on ob_step2
 - Fix paywall race condition flagged in Session A (CC form sometimes needs hard refresh on fresh signup)
 - ob_step6 visual redesign to match two-column mock (`ob_step6_stripe.html`) — current is single-column placeholder
 - Disable Stripe Link button on card element
 - Add post-payment confirmation/welcome moment before routing to app
+- Update ob_step5 mock copy/buttons to reflect Google + LinkedIn (not Microsoft) as OAuth options
 
 #### Session C — V4 Design: Acquisition Funnel
 - `rolegarden.com` homepage build (`homepage_v4c.html` reference)

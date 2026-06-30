@@ -42,7 +42,8 @@ Role Garden is an AI career platform that matches professionals to curated oppor
 | GTM | `GTM-P7WVMPZT` — on app.rolegarden.com only | ✅ Live |
 | GA4 | `G-Y3XBW9PR41` — app.rolegarden.com only | ✅ Live |
 | Google OAuth | Wired June 29 — Client ID/Secret in Supabase | ✅ Live |
-| Microsoft OAuth | Blocked on Azure tenant issue | ❌ Pending — revisit this week |
+| LinkedIn OAuth (OIDC) | Wired June 30 — Client ID/Secret in Supabase, redirect URI set | ✅ Live |
+| Microsoft OAuth | Blocked on Azure tenant issue, deprioritized for LinkedIn | ❌ Pending — revisit this week, not launch-blocking |
 | Stripe | Live, $39/mo product, 7-day trial wired | ✅ Live |
 
 ---
@@ -95,7 +96,8 @@ Free access exception: `is_free_account` boolean in `users` table. Manual Supaba
 ### Authentication
 - Supabase Auth (email + password)
 - Google OAuth: ✅ wired June 29. Cloud project `role-garden` created under `rolegarden.com` org. OAuth consent screen configured (External, support email `contact@rolegarden.com` — new Restricted Google Group). Client ID + Secret created, wired into Supabase Auth providers. Verified enabled.
-- Microsoft OAuth: ❌ blocked — Azure tenant mismatch error (`AADSTS50020`) when signing into Azure portal with personal Microsoft account. Needs resolution before Session B can wire it. Not deferred — revisit this week.
+- LinkedIn OAuth (OIDC): ✅ wired June 30. App created under existing Role Garden LinkedIn Company Page, company verification completed. "Sign In with LinkedIn using OpenID Connect" product added (openid, profile, email scopes). Client ID + Secret wired into Supabase Auth providers, redirect URI configured on both sides. Verified enabled. Note: LinkedIn OAuth provides authentication + basic profile only — does NOT provide resume-equivalent work history/skills data (LinkedIn restricts that to Partner Program access). Does not replace resume upload flow.
+- Microsoft OAuth: ❌ blocked — Azure tenant mismatch error (`AADSTS50020`) when signing into Azure portal with personal Microsoft account. Needs resolution before Session B can wire it. Not deferred — revisit this week. **Decision June 30: deprioritized in favor of LinkedIn as third sign-in option — better audience fit for job seekers. Microsoft still worth fixing eventually but no longer blocking Session B.**
 - Password reset: ✅ working
 - Email confirmation: ✅ working
 
@@ -244,7 +246,8 @@ product_variant:  ['assessment_first']
 | ID | Item |
 |---|---|
 | 4.36 | ~~Google OAuth — not wired~~ ✅ DONE June 29 |
-| 4.37 | Microsoft OAuth — blocked on Azure tenant mismatch (`AADSTS50020`), personal MS account can't access Entra ID. Revisit this week — likely needs proper tenant setup or different account. |
+| 4.37 | Microsoft OAuth — blocked on Azure tenant mismatch (`AADSTS50020`), personal MS account can't access Entra ID. Deprioritized June 30 in favor of LinkedIn. Revisit this week if time allows — not launch-blocking. |
+| 4.47 | ~~LinkedIn OAuth — not wired~~ ✅ DONE June 30 |
 | 4.38 | Mobile reminder email (`/api/resend/reminder`) |
 | 4.39 | Klaviyo `active_members` list + Day 0-7 journey |
 | 4.40 | Klaviyo Touch 2 + 3 pre-signup flows |
@@ -256,6 +259,11 @@ product_variant:  ['assessment_first']
 | 4.46 | Mobile app experience build (separate session after desktop) |
 
 ---
+
+## Open Items Surfaced June 30
+
+- **Privacy Policy + ToS not live.** Only a placeholder draft clause exists (`tos_resume_consent_clause_draft.md`), not a finalized lawyer-reviewed policy. Footer links on `homepage_v4c.html` point to `#`. Per `RG_manual_tasks_guide.md`, lawyer engagement targeted Days 22-26, finalized pages by July 3 — still on original schedule, just not done. Surfaced while creating LinkedIn OAuth app (Privacy Policy URL field, ended up not required).
+- **LinkedIn Company Page copy updated June 30** — replaced "AI job-search agent" framing (violated brand manifesto's "AI stays in the background" voice rule) with manifesto-aligned About text centered on "career execution platform" and Discover/Decide/Prepare/Win messaging hierarchy. Same update should be applied to Facebook Page (same outdated copy from June 29 setup) and any other surface still using old positioning.
 
 ## Known Bugs (logged, not yet fixed)
 
