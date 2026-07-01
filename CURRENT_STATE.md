@@ -1,5 +1,5 @@
 # CURRENT_STATE.md — Role Garden
-**Last updated:** June 30, 2026
+**Last updated:** July 1, 2026
 
 ---
 
@@ -25,7 +25,7 @@ Role Garden is an AI career platform that matches professionals to curated oppor
 ### File state
 | File | Location | Lines | Notes |
 |---|---|---|---|
-| `index.html` | `deploy_rg` | ~16,627 | Single-file vanilla JS SPA |
+| `index.html` | `deploy_rg` | ~17,799 | Single-file vanilla JS SPA |
 | `proxy.js` | `rg-proxy` | ~774 | Node/HTTP (no Express) |
 | `rg_marketing_widget.html` | `rolegarden-marketing` | ~307 | Standalone JD-first landing page (noindex) |
 
@@ -99,18 +99,24 @@ Free access exception: `is_free_account` boolean in `users` table. Manual Supaba
 - LinkedIn OAuth (OIDC): ✅ wired June 30. App created under existing Role Garden LinkedIn Company Page, company verification completed. "Sign In with LinkedIn using OpenID Connect" product added (openid, profile, email scopes). Client ID + Secret wired into Supabase Auth providers, redirect URI configured on both sides. Verified enabled. Note: LinkedIn OAuth provides authentication + basic profile only — does NOT provide resume-equivalent work history/skills data (LinkedIn restricts that to Partner Program access). Does not replace resume upload flow.
 - Microsoft OAuth: ❌ blocked — Azure tenant mismatch error (`AADSTS50020`) when signing into Azure portal with personal Microsoft account. Needs resolution before Session B can wire it. Not deferred — revisit this week. **Decision June 30: deprioritized in favor of LinkedIn as third sign-in option — better audience fit for job seekers. Microsoft still worth fixing eventually but no longer blocking Session B.**
 - Password reset: ✅ working
-- Email confirmation: ✅ working
+- Email confirmation: ❌ disabled June 30 — was blocking session creation on signup (see Known Bugs / Decisions below). Sessions now issue immediately on `signUp()`. CC requirement at Step 6 is the real anti-fraud gate; email confirmation was not adding meaningful protection at this stage.
 
-### Onboarding flow (current in code — modal overlay)
-- `showOnboardingPage()` → modal overlay over Discover
-- Step 1: Resume upload
-- Step 2: Search intent (title, location, industries)
-- Step 3: Confirmation
-- `obFinish()` → `showDiscover()`
+### Onboarding flow — LEGACY (modal overlay, still in code, not the active path)
+- `showOnboardingPage()` → modal overlay — superseded by V4 standalone flow below, but NOT deleted (flagged for future cleanup)
+- Mapped in full June 30 (Session B.1 summary): `obCaptureEmail()`, `obStep2CanProceed()`, `obShowStep(n)`, `obClearFile()`, `obFinish()`, `onAssessmentComplete()` — all still functional in isolation, independently read/write `rg_captured_email` and `rg_email_captures`, fire their own Klaviyo Touch 1B. Not routed to from anywhere active (`authBootGate`'s no-session branch defaults to the V4 flow). Safe to delete only as its own dedicated cleanup session — has real dependencies that need to be traced out first.
 
-### Onboarding flow (V4 target — standalone pages)
-- 6 distinct view states replacing modal overlay
-- See ob_step1 through ob_step6 mocks
+### Onboarding flow — V4 ACTIVE (shipped, in progress)
+**5 steps, not 6** — standalone email-capture step eliminated June 30 (Session B.1). Order: **Signup → Resume Upload → Loading/Matching → Results → CC (Stripe)**. Account creation moved to Step 1 specifically to fix a real bug — Steps 3/4 need an authenticated Supabase session to call `/api/claude` and query `rg_jobs_index` (both RLS-protected), and originally ran pre-auth, causing 401s. Confirmed via browser testing, not just code review.
+
+| Step | Function | Status |
+|---|---|---|
+| 1 | `showObStep1()` (was Step 5's signup UI, renamed) | ✅ Working — Google/LinkedIn/Email signup |
+| 2 | `showObStep2()` | ✅ Working — resume upload, no skip |
+| 3 | `showObStep3()` / `_obStep3Run()` | ⚠️ Functionally works (real auth, real data), but visual/content far short of `ob_step3_loading.html` mock (missing milestone richness, rotating insights, observation banner) — fix in progress |
+| 4 | `showObStep4()` | ⚠️ Functionally works (real match cards with live scoring data), but missing most of `ob_step4_results.html`'s content (hero, two-column reasoning, fit summary, journey illustration, checklist, trust strip) — fix in progress |
+| 5/6 | `showObStep6()` | ⚠️ Two-column layout matches mock, but payment form is missing Name on Card, Billing ZIP, and CVC is not visibly rendering — root cause not yet diagnosed, fix in progress |
+
+Old `showObStep1` (email-only capture) renamed to `_DEPRECATED_obStep1EmailCapture`, kept in file, zero active callers.
 
 ### Matching engine
 - Job index: `rg_jobs_index` table in Supabase (~8,848 jobs, ATS-direct)
@@ -265,13 +271,26 @@ product_variant:  ['assessment_first']
 - **Privacy Policy + ToS not live.** Only a placeholder draft clause exists (`tos_resume_consent_clause_draft.md`), not a finalized lawyer-reviewed policy. Footer links on `homepage_v4c.html` point to `#`. Per `RG_manual_tasks_guide.md`, lawyer engagement targeted Days 22-26, finalized pages by July 3 — still on original schedule, just not done. Surfaced while creating LinkedIn OAuth app (Privacy Policy URL field, ended up not required).
 - **LinkedIn Company Page copy updated June 30** — replaced "AI job-search agent" framing (violated brand manifesto's "AI stays in the background" voice rule) with manifesto-aligned About text centered on "career execution platform" and Discover/Decide/Prepare/Win messaging hierarchy. Same update should be applied to Facebook Page (same outdated copy from June 29 setup) and any other surface still using old positioning.
 
-## Known Bugs (logged, not yet fixed)
+## Known Bugs
 
-| Bug | Severity | Notes |
+| Bug | Severity | Status |
 |---|---|---|
-| Paywall race condition on fresh signup | Medium | `authBootGate` paywall check sometimes shows old onboarding modal instead of `ob_step6` on first load immediately after signup. Resolves on hard refresh. Root cause not yet diagnosed — suspect timing between Supabase `users` row creation and the paywall query. Logged June 29, reproduced on `rg9` and `rg10` test signups. |
-| `rgInitAnalytics` ReferenceError | Low | `Uncaught ReferenceError: supabase is not defined` in `rgTrack` at L2301, called from `rgInitAnalytics`. Pre-existing, not introduced by Session A. One-line guard fix needed (`typeof supabase !== 'undefined'` check before call). |
-| Stripe Link button on ob_step6 | Low | Stripe.js auto-injects a "Save with Link" button in the card element. Not part of design. Needs `disableLink: true` in Stripe Elements options. Cosmetic only, not blocking. |
+| Paywall race condition on fresh signup | Resolved | Root cause confirmed June 30 (Session B.1): old `showOnboardingPage()` modal was firing unconditionally via `checkOnboarding()` even after the V4 flow's own routing took over. Fixed with an `rg_v4_onboarding_active` localStorage guard. |
+| `rgInitAnalytics` ReferenceError (broad) | Resolved | Session B added a `typeof supabase === 'undefined'` guard. **Narrower version still occurs** — `rgTrack` calling `supabase.auth.getUser()` can still throw when `supabase` is technically defined but `.auth` isn't ready (different failure mode the original guard didn't cover). Non-fatal — does not block downstream calls. Not yet fixed, low priority. |
+| Stripe Link button on ob_step6 | Resolved | Disabled via Stripe Dashboard → Settings → Payment Methods → Link (toggle off), June 30. More durable than the CSS fallback Session B's build chat had used as a stopgap. |
+| `appShell` DOM id mismatch (3 call sites) | Resolved | `showObStep6()` and shared step helpers referenced nonexistent `appShell` id — should have been `mainArea`. Null-guarded so it never threw, but was a real latent bug. Fixed June 30 (pure rename, 3 sites). |
+| `showObStep5` stale reference | Resolved | Session B.1's Item 1 rename (`showObStep5`→`showObStep1`) missed one call site — Step 4's "Unlock My Career Workspace" button still called the old name, blocking 100% of users from reaching payment. Caught in browser testing immediately post-handoff, hotfixed same day. Root cause: rename-in-place edits need a full-file grep for the old name afterward, not just a definitions check — now a standing process note for future sessions. |
+| Email confirmation blocking session creation | Resolved | Supabase's "Confirm email" setting (Authentication → Providers → Email) was ON, meaning `signUp()` returned no usable session until the user clicked a confirmation link — this was the actual root cause of the Step 3/4 401 errors, not just step-ordering. Disabled June 30. Tradeoff accepted: no automatic email-ownership verification at signup, but the Stripe CC requirement at Step 6 is a stronger fraud barrier regardless. Standard SaaS practice (per industry data) is to delay or skip pre-activation email verification — this aligns with that. |
+| Step 3 (loading) content gap vs mock | Open | Functionally correct (real auth, real data) but visually far short of `ob_step3_loading.html` — missing most of the milestone/animation richness. In progress, Session B.3. |
+| Step 4 (results) content gap vs mock | Open | Real match cards render with live scoring data, but missing most of `ob_step4_results.html`'s content — hero section, two-column reasoning, fit summary, journey illustration, benefits checklist, trust strip. Session B's original claim that this was "confirmed feasible and built" was accurate about data flow but materially overstated relative to mock content depth. In progress, Session B.3. |
+| Step 6 (CC form) missing fields | Open | Two-column layout matches mock, but the payment form is missing "Name on card" and "Billing ZIP" fields entirely, and CVC is not visibly rendering in the Stripe Card Element (root cause not yet diagnosed — could be CSS sizing or an Elements option issue). In progress, Session B.3. |
+
+| Bare `supabase` global reference — 6 call sites | Resolved July 1 | `supabase` was never a declared variable anywhere in the file — only `window.supabase` (raw SDK) and `_supabaseClient`/`getSupabase()` (actual client) exist. Six functions used the bare name: `extractCareerProfile`, `rgTrack`, `rgPersistResumeProfile`, cohort-persistence (~L2379), `obCaptureEmail` (legacy flow), `onAssessmentComplete` (legacy flow). Session B's "fix" to `rgTrack` checked `typeof supabase === 'undefined'` — wrong pattern, since `supabase` as a bare name can resolve as `undefined` or throw a ReferenceError depending on browser scoping. All six now use `getSupabase()`. |
+| `rg_events` 403 on insert | Open | RLS policy missing for `authenticated` role on `rg_events` table. Analytics events fail silently. Non-fatal — does not block any user-facing flow. Fix: add `GRANT INSERT ON public.rg_events TO authenticated` in Supabase SQL Editor, plus verify RLS policy allows authenticated user INSERT. |
+| GA4 event tracking gap in new onboarding flow | Open, not yet investigated | `rg_lead` fires from the OLD Step 1 (`obStep1Continue`, deprecated by Session B.1's reorder) — likely no longer fires at all in the active flow. `rg_signup` not found firing anywhere in a grep of the pre-B.1 file. `rg_resume_uploaded` appears to still fire correctly (Step 2 stayed in the active chain). Not investigated against the actual deployed B.1 file yet — flagged June 30, to be checked after Session B.3 ships. Conversion funnel analytics may currently be incomplete/broken for the new 5-step flow. |
+
+- **Resume text has no Supabase persistence anywhere in the codebase** (old modal flow or new V4 flow) — lives in `rg_resume_primary` localStorage only. This is why a user signing in on a different device sees "no resume uploaded." Derived profile fields (skills, seniority, persona_cluster, etc.) DO persist correctly to the `users` table via `rgPersistResumeProfile()`. **Decision: build a real `resumes` table (RLS-protected, owner-only, same trust pattern as other tables) in Session B.2.** Not deferred indefinitely, not parked as V1.5 — scoped as its own near-term session.
+- **Onboarding order changed: Signup now precedes Resume Upload** (was the reverse in the original V4 spec). Two reasons, both real: (1) architectural — Steps 3/4 need an authenticated session for RLS-protected queries, and (2) product/trust — no mainstream platform (LinkedIn, Indeed, ZipRecruiter, Otta, Teal, Huntr) asks for resume upload before account creation; it's sensitive personal data and users expect an authenticated container before handing it over. Standalone email-capture step (old Step 1) eliminated — folded into the new Step 1 signup screen.
 
 ## Mock Inventory (approved, June 2026)
 

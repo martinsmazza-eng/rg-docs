@@ -1,5 +1,5 @@
 # _ROADMAP.md — Role Garden
-**Last updated:** June 30, 2026
+**Last updated:** July 1, 2026
 
 ---
 
@@ -22,6 +22,7 @@
 | June 29 | **Session A shipped — Stripe + Paywall.** Live Stripe account, $39/mo product, webhook configured. `/api/stripe/create-subscription` and `/api/stripe/webhook` endpoints live in proxy. `authBootGate` paywall gate live. `ob_step6` CC form functional (single-column placeholder, not yet matching two-column mock). Klaviyo `active_members` list created and wired. Verified end-to-end with real card on fresh signup — subscription created, Supabase updated immediately, Klaviyo triggered. Two bugs logged for Session B (paywall race condition on fresh signup, pre-existing analytics ReferenceError). |
 | June 29-30 | **Google OAuth wired.** New `role-garden` Cloud project created under `rolegarden.com` org (required setting up Cloud org IAM access — Workspace Super Admin didn't auto-grant Cloud project creation rights). OAuth consent screen configured External, support email routed through new `contact@rolegarden.com` Google Group (Restricted access, invite-only). Client ID + Secret created, wired into Supabase Auth providers, verified enabled. **Microsoft OAuth blocked** — Azure tenant mismatch (`AADSTS50020`) on personal Microsoft account, paused rather than worked around. Revisit this week before Session B. |
 | June 30 | **LinkedIn OAuth wired (replaces Microsoft as third sign-in option for V1).** Decision: better audience fit for job seekers than Microsoft, and Azure setup was blocked anyway. LinkedIn Developer app created under existing verified Company Page. "Sign In with LinkedIn using OpenID Connect" product requested and approved (openid, profile, email scopes). Client ID + Secret wired into Supabase, redirect URI configured both sides, verified enabled. Note: LinkedIn OAuth ≠ LinkedIn profile import — does not provide work history/resume-equivalent data, authentication only. **Also:** LinkedIn Company Page About/tagline updated to match brand manifesto voice (dropped "AI job-search agent" framing). Facebook Page has the same outdated copy, not yet updated. **Surfaced:** Privacy Policy/ToS not yet live — still on original lawyer-review schedule (target July 3), not a new gap. |
+| June 30 | **Sessions B → B.3 shipped — V4 onboarding flow fully rebuilt and verified.** Full arc: Session B (6-step flow + OAuth wiring + ob_step6 two-column redesign, code-complete not browser-verified), Session B.1 (reorder to signup-before-resume, fixing real 401 bug where Steps 3-4 ran pre-auth), B.1 hotfix (stale `showObStep5()` reference blocking CC form button), Session B.3 (Step 3/4/6 content rebuilt to match mocks — hero, match cards with real data, journey illustration, checklist, trust strip; logos via `rgLogoHtml()`; Name-on-card field; Step 3 milestone animation). **Systemic bug found and fixed:** 6 call sites across the file used bare `supabase` global (a variable that was never actually declared anywhere) — `extractCareerProfile`, `rgTrack`, `rgPersistResumeProfile`, cohort-persistence, `obCaptureEmail`, `onAssessmentComplete`. All now use `getSupabase()` correctly. **Key architecture decision:** signup-first (not resume-first) — confirmed correct after browser-testing the 401 failure chain and researching industry practice. Email confirmation disabled (sessions now issue immediately on `signUp()`; CC requirement at Step 6 is the real fraud gate). |
 
 ---
 
@@ -58,19 +59,29 @@
 - Stripe Link button not yet disabled on card element
 - Day-7 failed payment has no automated access revocation (manual process documented in `RG_manual_tasks_guide.md`)
 
-#### Session B — V4 Onboarding + OAuth (depends on OAuth credentials + Stripe)
-**Status: Stripe ✅, Google OAuth ✅, LinkedIn OAuth ✅ — all three sign-in credentials ready. Brief can now be written. Microsoft OAuth deprioritized, not blocking.**
-- 6-step standalone onboarding flow replacing modal overlay
-- Google OAuth wiring (Supabase `signInWithOAuth`) — credentials ready
-- LinkedIn OAuth wiring (Supabase `signInWithOAuth`, provider `linkedin_oidc`) — credentials ready
-- ~~Microsoft OAuth wiring~~ — deprioritized, not in Session B scope. Revisit separately if Azure access resolves.
-- Mobile reminder email (`/api/resend/reminder` proxy endpoint)
-- Wire "Email me a reminder" link on ob_step2
-- Fix paywall race condition flagged in Session A (CC form sometimes needs hard refresh on fresh signup)
-- ob_step6 visual redesign to match two-column mock (`ob_step6_stripe.html`) — current is single-column placeholder
-- Disable Stripe Link button on card element
-- Add post-payment confirmation/welcome moment before routing to app
-- Update ob_step5 mock copy/buttons to reflect Google + LinkedIn (not Microsoft) as OAuth options
+#### Sessions B / B.1 / B.3 — V4 Onboarding + OAuth — ✅ SHIPPED June 30
+
+**What shipped:**
+- Signup-first 5-step onboarding (Signup → Resume → Loading → Results → CC), replacing the old modal overlay and the original resume-first spec
+- Google + LinkedIn OAuth wiring via `signInWithOAuth` — credentials wired, redirect URIs confirmed
+- `authBootGate` resume-existence gate (new users without a resume → Step 2, not CC)
+- ob_step6 two-column layout matching the mock — Name-on-card field, Stripe Link disabled via Dashboard
+- Post-payment confirmation moment before routing to app
+- Step 3 full visual rebuild — pulsing logo, milestone tracker, rotating insights, observation banner
+- Step 4 full content rebuild — hero, extended match cards with real strengths/gaps/summary from `scoreJobs()`, logos via `rgLogoHtml()`, journey illustration, checklist, trust strip
+- Systemic `supabase` global reference bug fixed across 6 call sites
+- Email confirmation disabled (sessions issue immediately on signup)
+
+**Still open / deferred:**
+- Mobile reminder email (`/api/resend/reminder`) — not built
+- `window._obPersonalizationLine` referenced but never set — Step 4 hero falls back to generic copy
+- "See why this fits you" routes to Step 6 — confirm or redirect
+- `rg_events` table 403 on insert — RLS policy missing for authenticated users
+- GA4/Supabase tracking review — `rg_lead`, `rg_signup` may not fire correctly in new flow
+- Location/remote-preference field not captured anywhere in V4 onboarding
+- Step 4 match-tier threshold (Fair Match showing in results) — deferred to search-quality session
+- Microsoft OAuth — still blocked on Azure tenant mismatch, not launch-blocking
+- Resume text has no Supabase persistence (localStorage only) — Session B.2 scoped but not built
 
 #### Session C — V4 Design: Acquisition Funnel
 - `rolegarden.com` homepage build (`homepage_v4c.html` reference)
@@ -142,7 +153,7 @@
 **References for every build chat:**
 - `brand_design_system_v3.md` — tokens, components, non-negotiables
 - Approved mocks — exact visual target for every screen
-- `index.html` (~16,627 lines) — attach to every app build chat
+- `index.html` (~17,799 lines) — attach to every app build chat
 - `proxy.js` (~774 lines) — attach when proxy changes needed
 - `_CONSTITUTION.md` — what never to touch
 - `CURRENT_STATE.md` (this file updated) — architecture reality
